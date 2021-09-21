@@ -1,0 +1,72 @@
+function init_PML_profile(LPML_r,LPML_z,Vmax,dr,dz,nr)
+#function init_PML_profile(LPML_r,LPML_z,Vmax)
+ #creating PML profile function
+ #LPML_ : PML thickness (points)
+ #Vmax: maximum velocity
+
+ #Try to look at PWL_Wz: when slope is very sharp reflection can occur.
+ #                     : The highest point is controled by Ralpha,
+ #                     : slope continuing from non-PML to PML is controlled by a, b
+ #                     : large Ralpha -> too sharp. large a -> continuation may be discontinous
+
+ #---Wang and Tang 2003 eqs (42-43)
+# a=0.25
+# b=0.75
+ a=0.0
+ b=1.0
+ c=0.0
+ Ralpha=1E-8 #required reflection magnitude order: ~log()=3pi(m+1)? m is order of OMEGA function
+# Ralpha=1E-3 #required reflection magnitude order (1E-3 was better than 1E-6)
+# Ralpha=0.01 #this was even better, but FSref can be large
+# Ralpha=1E-4 #Wang and Tang (good with a=0.25,b=0.75, L=lambda/2)
+
+ dvec_r=collect(1:1:LPML_r)
+ dvec_z=collect(1:1:LPML_z)
+ dvec_r=dvec_r*dr-dr*ones(length(dvec_r)) #0,dr,2dr,3dr... do not change!
+ dvec_z=dvec_z*dz-dz*ones(length(dvec_z))
+
+ LPML_r_meter=(LPML_r-1)*dr
+ LPML_z_meter=(LPML_z-1)*dz
+
+#0,dr,2dr,3dr...
+ PML_Wr=-Vmax*log(Ralpha)/LPML_r_meter*(a*dvec_r/LPML_r_meter+b*dvec_r.^2/LPML_r_meter^2+c*dvec_r.^3/LPML_r_meter^3)
+ PML_Wz=-Vmax*log(Ralpha)/LPML_z_meter*(a*dvec_z/LPML_z_meter+b*dvec_z.^2/LPML_z_meter^2+c*dvec_z.^3/LPML_z_meter^3)
+#dr/2,dr/2+dr,dr/2+2dr...
+ dvec_r2=collect(1:1:LPML_r)
+ dvec_z2=collect(1:1:LPML_z)
+ dvec_r2=dvec_r2*dr-dr/2.0*ones(length(dvec_r2))
+ dvec_z2=dvec_z2*dz-dz/2.0*ones(length(dvec_z2))
+ PML_Wr2=-Vmax*log(Ralpha)/LPML_r_meter*(a*dvec_r2/LPML_r_meter+b*dvec_r2.^2/LPML_r_meter^2+c*dvec_r2.^3/LPML_r_meter^3)
+ PML_Wz2=-Vmax*log(Ralpha)/LPML_z_meter*(a*dvec_z2/LPML_z_meter+b*dvec_z2.^2/LPML_z_meter^2+c*dvec_z2.^3/LPML_z_meter^3)
+
+
+ #--integral PML_IWr(r)=1/r*integral(0--r)[PML_Wr] dr
+# PML_IWr=0.0*PML_Wr
+ #PML_IWr[1]=PML_Wr[1]/2.0*dr
+ #for ir=2:LPML_r
+#     PML_IWr[ir]=PML_IWr[ir-1]+(PML_Wr[ir-1]+PML_Wr[ir])/2.0*dr
+ #end
+ #PML_IWr=PML_IWr./(dvec_r+((nr-LPML_r)*dr+dr/2)*ones(length(dvec_r)))
+
+#Analytical integral assuming specific form PML_Wr=P0(ar/L+br^2/L^2)
+#0,dr,2dr,3dr... from r0
+r0=(nr-LPML_r)*dr #PML just starts at this R (Wr=0): location of tii
+dvec_r_global=dvec_r+r0*ones(length(dvec_r)) #r0+0, r0+dr, r0+2dr, ...
+P0=-Vmax*log(Ralpha)/LPML_r_meter
+PML_IWr=P0*(1.0/2.0*a/LPML_r_meter*(dvec_r).^2+
+            1.0/3.0*b/LPML_r_meter^2*(dvec_r).^3+
+            1.0/4.0*c/LPML_r_meter^3*(dvec_r).^4
+            )./dvec_r_global
+
+#dr/2,dr/2+dr,dr/2+2dr... from r0
+#  PML_IWr2=-Vmax*log(Ralpha)/LPML_r_meter*(1.0/2.0*a*dvec_r2/LPML_r_meter+1.0/3.0*b*dvec_r2.^2/LPML_r_meter^2)
+dvec_r2_global=dvec_r2+r0*ones(length(dvec_r))
+PML_IWr2=P0*(1.0/2.0*a/LPML_r_meter*(dvec_r2).^2+
+            1.0/3.0*b/LPML_r_meter^2*(dvec_r2).^3+
+            1.0/4.0*b/LPML_r_meter^3*(dvec_r2).^4
+            )./dvec_r2_global
+
+
+
+ return  LPML_r,LPML_z,PML_Wr,PML_Wz,PML_IWr,PML_Wr2,PML_Wz2,PML_IWr2
+end

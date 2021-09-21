@@ -1,0 +1,7 @@
+function mycopy_mat(MATin,MATout,nz,nr)
+    @inbounds Threads.@threads for j=1:nr
+        for k=1:nz
+            MATout[k,j]=MATin[k,j]
+        end
+    end
+end
