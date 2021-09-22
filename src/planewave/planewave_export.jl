@@ -1,9 +1,7 @@
-export  Peng_solution03,
-        Schoenberg_solution_initialBC03,
-        taper_initial_field!
+export  Peng_solution,
+        Schoenberg_solution_initialBC,
+        taper_initial_field!,
+        initialize_planewave
 
 
-
-
-#include("../FD/Peng06Mod.jl")
 include("./planewave.jl")

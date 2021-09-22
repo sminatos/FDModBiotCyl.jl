@@ -111,18 +111,17 @@ using CPUTime
 using ProgressMeter
 using Interpolations
 using MAT
-using SpecialFunctions
+#using SpecialFunctions
 using Base64
 using DSP
-using FFTW
+#using FFTW
 using Plots
 using JLD
-using Dierckx
+#using Dierckx
 using DelimitedFiles
 using Printf
 #
 using FDModBiotCyl
-#include("../src/FD/Peng06Mod.jl") #Peng's exact solution to B.C.s of plane wave (MOD version. Use this.)
 
 #---Loading Functions----
 #include("./PCylFDMod_Ou1st03.jl") #main modules. With acoustic, not good, but ok.
@@ -141,9 +140,7 @@ using FDModBiotCyl
 function tmp_makemodel()
 #poroelasticity version
 
-#   nr=101 #A3-A5
    nr=301
-#   nz=501 #A3
    nz=701 #for back2
 
 
@@ -173,10 +170,8 @@ function tmp_makemodel()
    #-Fluid all equivalent
    Kf[:,:]=ones(nz,nr)*2.25*10^9
    Rhof[:,:]=ones(nz,nr)*1000
-   Kappa0[:,:]=ones(nz,nr)*1*9.869*10^(-13)
-#   Kappa0[:,:]=ones(nz,nr)*2.0
+   Kappa0[:,:]=ones(nz,nr)*1*9.869*10^(-13) #m^2
    Eta[:,:]=ones(nz,nr)*1.0*10^(-3) #water 1E-3 Pa.s
-#   Eta[:,:]=ones(nz,nr)*0 #water 1E-3 Pa.s
 
 
    #--homogeneous media
@@ -423,7 +418,7 @@ function init02(nr,nz,dr,dz,ir_wall,Rho,H,G)
    #--now module is available--
    vz_srcBC,vr_srcBC,vphi_srcBC,
    trr_srcBC,tpp_srcBC,tzz_srcBC,trp_srcBC,trz_srcBC,tpz_srcBC,
-   src_iz=Peng_solution03(nr,nz,dr,dz,ir_wall,tvec,src_func,srcdepth,f0,ntaper,noffset,Vp_E,Vs_E,Rho_E)
+   src_iz=Peng_solution(nr,nz,dr,dz,ir_wall,tvec,src_func,srcdepth,f0,ntaper,noffset,Vp_E,Vs_E,Rho_E)
 
    #make sure tvec of vel and stress are correct
    tvec_vel=copy(tvec)
@@ -432,7 +427,7 @@ function init02(nr,nz,dr,dz,ir_wall,Rho,H,G)
 #   tvec_stress=tvec_stress-dt/2*ones(nt) #Needs pre-update. see also Peng_solution02
 
    vz_init,vr_init,vphi_init,trr_init,tpp_init,tzz_init,
-   trp_init,trz_init,tpz_init=Schoenberg_solution_initialBC03(nr,nz,dr,dz,ir_wall,Vp_E,
+   trp_init,trz_init,tpz_init=Schoenberg_solution_initialBC(nr,nz,dr,dz,ir_wall,Vp_E,
                               tvec_vel,tvec_stress,
                               srcdepth,f0,delay,
                               vz_srcBC,vr_srcBC,vphi_srcBC,
@@ -582,17 +577,6 @@ function init02(nr,nz,dr,dz,ir_wall,Rho,H,G)
 end # function init
 
 
-
-
-function init_snap(nt,nz,nr)
-   #---Initializing snapshots
-#   nskip=25
-   nskip=100
-   snapshots_vr,snapshots_vz,nsnap,itvec_snap=init_snapshots_v(nskip,nt,nz,nr)
-   snapshots_trr,nsnap,itvec_snap=init_snapshots_t(nskip,nt,nz,nr)
-   return nskip,snapshots_trr,snapshots_vr,snapshots_vz,nsnap,itvec_snap
-end
-
 function init_snap_sparse(nt,nz,nr)
    #---Initializing snapshots (sparse version)
    nskip=100
@@ -727,6 +711,131 @@ function wave_curl01!(curV,nr,nz,dr,dz,vr,vz)
       end
    end
 end
+
+#---function to create receiver geometry for plane wave experiment ()temporary
+function make_receivers()
+   #--Receiver positions----
+   #==
+      nrec=8
+      recgeom=zeros(nrec,2) #(z,r)
+      for irec=1:nrec
+         recgeom[irec,1]=srcgeom[1,1]-2.7432-(irec-1)*0.1524
+         recgeom[irec,2]=0.0
+      end
+   ==#
+   #---borehole center
+   nrec1=nz
+   recgeom1=zeros(nrec1,2) #(z,r)
+   for irec=1:nrec1
+      recgeom1[irec,1]=dz*(irec-1)
+      recgeom1[irec,2]=0.0
+   end
+
+   #--Receivers without interpolation
+   rec_vr1,rec_vz1,rec_tii1,index_allrec_vr1,index_allrec_vz1,index_allrec_tii1=init_receiver(recgeom1,nrec1,dr,dz,nr,nz,nt)
+
+   #---corresponding borehole wall
+   # exact boundrary is at (ir_wall-1)*dr+dr/2
+   # coincident location: vr and trz
+   # dr/2 inside elastci media: vz,tii,vphi,tpz
+   recgeom2=zeros(nrec1,2) #(z,r)
+   #--collect indexes for vr
+   #---homogeneous R version
+   for irec=1:nrec1
+      recgeom2[irec,1]=dz*(irec-1)
+      recgeom2[irec,2]=(ir_wall-1)*dr+dr/2
+   end
+   #---inhomogeneous R version (assuming Vp[1:ir_wall@z]=1500)
+#   for irec=1:nrec1
+#      ir_wall_now=maximum(findall(x->x==1500,Vp[irec,:])) #assuming nrec=nz
+#      recgeom2[irec,1]=dz*(irec-1)
+#      recgeom2[irec,2]=(ir_wall_now-1)*dr+dr/2 #this is a position of wall (good for vr)
+#   end
+
+   #--Receivers without interpolation
+   rec_vr,rec_vz,rec_tii,index_allrec_vr2,index_allrec_vz_dummy,index_allrec_tii_dummy=init_receiver(recgeom2,nrec1,dr,dz,nr,nz,nt)
+   # repeat for tii
+   for irec=1:nrec1
+      recgeom2[irec,1]=dz*(irec-1)
+      recgeom2[irec,2]=(ir_wall-1)*dr+dr
+   end
+#   for irec=1:nrec1
+#      ir_wall_now=maximum(findall(x->x==1500,Vp[irec,:])) #assuming nrec=nz
+#      recgeom2[irec,1]=dz*(irec-1) #this is a position good for tii (same as Vp)
+#      recgeom2[irec,2]=(ir_wall_now-1)*dr+dr #this is a position of wall+dr/2 (good for vz and tii)
+#   end
+   #--Receivers without interpolation
+#   rec_vr,rec_vz,rec_tii,index_allrec_vr_dummy,index_allrec_vz2,index_allrec_tii2=init_receiver(recgeom2,nrec1,dr,dz,nr,nz,nt)
+   rec_vr,rec_vz,rec_tii,index_allrec_vr_dummy,index_allrec_vz_dummy,index_allrec_tii2=init_receiver(recgeom2,nrec1,dr,dz,nr,nz,nt)
+
+   # repeat for vz (be careful Vp is defined at tii and vr, and vz is located in between. Where to define "solid phase")
+   Vp_E=(H./Rho).^0.5
+   Vs_E=(G./Rho).^0.5
+   for irec=1:nrec1-1
+      ir_wall_up=maximum(findall(x->x==1500,Vp_E[irec,:])) #assuming nrec=nz
+      ir_wall_down=maximum(findall(x->x==1500,Vp_E[irec+1,:])) #assuming nrec=nz
+      if (ir_wall_up==ir_wall_down)
+         recgeom2[irec,1]=dz*(irec-1)+dz/2 #this is a position good for vz
+         recgeom2[irec,2]=(ir_wall_up-1)*dr+dr #this is a position of wall+dr/2 (good for vz and tii)
+      elseif (ir_wall_up>ir_wall_down) #radius gets smaller
+         recgeom2[irec,1]=dz*(irec-1)+dz/2 #this is a position good for vz
+         recgeom2[irec,2]=(ir_wall_up-1)*dr+dr #
+      elseif (ir_wall_up<ir_wall_down) #radius gets larger
+         recgeom2[irec,1]=dz*(irec-1)+dz/2 #this is a position good for vz
+         recgeom2[irec,2]=(ir_wall_down-1)*dr+dr #
+      else
+         error("ERROR in RECGEOM!")
+      end
+
+   end
+   #--Receivers without interpolation
+   rec_vr,rec_vz,rec_tii,index_allrec_vr_dummy,index_allrec_vz2,index_allrec_tii_dummy=init_receiver(recgeom2,nrec1,dr,dz,nr,nz,nt)
+
+
+   #--initializing arrays with correct nrec
+   nrec=nrec1*2
+   rec_vr=zeros(nt,nrec)
+   rec_vz=zeros(nt,nrec)
+   rec_tii=zeros(nt,nrec)
+   #---merge indexes
+   index_allrec_vr=zeros(nrec,2) #z,r
+   index_allrec_vz=zeros(nrec,2) #z,r
+   index_allrec_tii=zeros(nrec,2) #z,r
+   index_allrec_vr[1:nrec1,:]=index_allrec_vr1[1:nrec1,:]
+   index_allrec_vr[nrec1+1:2*nrec1,:]=index_allrec_vr2[1:nrec1,:]
+   index_allrec_vz[1:nrec1,:]=index_allrec_vz1[1:nrec1,:]
+   index_allrec_vz[nrec1+1:2*nrec1,:]=index_allrec_vz2[1:nrec1,:]
+   index_allrec_tii[1:nrec1,:]=index_allrec_tii1[1:nrec1,:]
+   index_allrec_tii[nrec1+1:2*nrec1,:]=index_allrec_tii2[1:nrec1,:]
+
+   index_allrec_vr=map(Int,index_allrec_vr)
+   index_allrec_vz=map(Int,index_allrec_vz)
+   index_allrec_tii=map(Int,index_allrec_tii)
+   #--Receivers with Interpolations.jl (not in main loop yet)
+   #rec_vr,rec_vz,rec_tzz,
+   #wis_allrec_vr,wis_allrec_vz,wis_allrec_tzz=init_receiver_interp(recgeom,nrec,dr,dz,nr,nz,nt)
+
+
+
+   #--Receivers vfr and pf----
+   nrec_PE=nr
+   recgeom_PE=zeros(nrec_PE,2) #(z,r)
+   for irec=1:nrec_PE
+#         recgeom_PE[irec,1]=(273-1)*dz
+      recgeom_PE[irec,1]=(320-1)*dz
+      recgeom_PE[irec,2]=dr*(irec-1)
+   end
+   #--Receivers without interpolation
+   rec_vfr_PE,rec_vfz_PE,rec_pf_PE,index_allrec_vfr_PE,index_allrec_vfz_PE,index_allrec_pf_PE=init_receiver(recgeom_PE,nrec_PE,dr,dz,nr,nz,nt)
+   rec_tii_PE=zeros(size(rec_pf_PE)) #for mean normal stress
+
+return  nrec,rec_vr,rec_vz,rec_tii,index_allrec_vr,index_allrec_vz,index_allrec_tii,
+      nrec_PE,rec_vfr_PE,rec_pf_PE,rec_tii_PE,index_allrec_vfr_PE,index_allrec_pf_PE
+
+end
+
+
+
 
 
 #----MAIN loop function----
@@ -1104,95 +1213,98 @@ end #function
 CPUtic()
 start=time()
 
-#---Constants (checked that they are fast)---
-const m=0
-#---A3-A5---
+#======================
+General variables
+======================#
+
+#==time samples
 const dt=0.125E-5
-
-#nt=200
-#const nt=5201
 const nt=16001
-#------------
-
-
 const T=(nt-1)*dt
+==#
+dt=0.125E-5
+nt=16001
+T=(nt-1)*dt
+tvec=range(0.0,T,length=nt) # range object (no memory allocation)
+tvec=collect(tvec) # a vector
 
+#PML thickness in samples
 LPML_r=51
-#LPML_z=31
-LPML_z=61 #for back2
+LPML_z=61
 
-#--Model building
-#for isrc=1:1
-#isrc=1
-#@show zsrc=620.0+1*(isrc-1)
-#zsrc=630.
-#tmpfilename_JLD=string(@__DIR__,"/testmodel.jld")
-#makemodel_Nojima(zsrc,tmpfilename_JLD)
-#--Model Loading
-#nr,nz,dr,dz,Vp,Vs,Rho=model_load_Nojima01(tmpfilename_JLD)
+#======================
+Creating model
+======================#
 nr,nz,dr,dz,Rho,Rhof,M,C,H,G,D1,D2,Flag_AC,Flag_E,ir_wall=tmp_makemodel()
 #error()
 
-#Vmax=maximum(Vp) #for PML
+#======================
+Stability check
+======================#
 Vmax=maximum((H./Rho).^(0.5)) #for PML
-check_stability01(dt,dr,Vmax,m)
-check_stability01(dt,dz,Vmax,m)
+check_stability01(dt,dr,Vmax,0)
+check_stability01(dt,dz,Vmax,0)
+
+#======================
+Creating src wavelet
+======================#
+f0=200 #src Freq Ou
+delay=1/f0*1.0
+src_func=myricker2(tvec,f0,delay,2) #when using 2nd derivative Gaussian (good for DWI)
+#src_func=myricker2(tvec,f0,delay,1) #when using 1st derivative Gaussian (Randall?)
+#src_func=myricker2(tvec,f0,delay,3) #when using 3rd derivative Gaussian
+tmp_maxamp=maximum(map(abs,src_func))
+src_func=src_func/tmp_maxamp
+display(plot(tvec,src_func[:],title="src function"))
+tmpfilename_src=string(@__DIR__,"/src_function.png")
+png(tmpfilename_src)
+println("Source signature figure saved in ",tmpfilename_src)
+
+#================================
+Src depth for initial plane wave
+================================#
+srcdepth=28. #meter
 
 
-#--Initialize
+#==============================
+Initializig field variables
+==============================#
 vr,vz,trr,tpp,tzz,trz,
 vfr,vfz,pf,
-src_func,tvec,
 vz_srcBC,vr_srcBC,
 trr_srcBC,tpp_srcBC,tzz_srcBC,trz_srcBC,
 vz_init,vr_init,trr_init,tpp_init,tzz_init,
 trz_init,
 src_iz,noffset,
-nrec,rec_vr,rec_vz,rec_tii,index_allrec_vr,index_allrec_vz,index_allrec_tii,
-nrec_PE,rec_vfr_PE,rec_pf_PE,rec_tii_PE,index_allrec_vfr_PE,index_allrec_pf_PE,
-f0=init02(nr,nz,dr,dz,ir_wall,Rho,H,G)
+f0=initialize_planewave(nr,nz,dr,dz,ir_wall,Rho,H,G,nt,tvec,dt,src_func,srcdepth,f0,delay)
 
-#intiial-field tapering
-display(plot(trr_init[:,1]))
-wavelength=Vmax/f0*1.5
-ntaper=21
-taper_initial_field!(trr_init,nz,nr,dz,src_iz,wavelength,ntaper)
-taper_initial_field!(tpp_init,nz,nr,dz,src_iz,wavelength,ntaper)
-taper_initial_field!(tzz_init,nz,nr,dz,src_iz,wavelength,ntaper)
-taper_initial_field!(trz_init,nz,nr,dz,src_iz,wavelength,ntaper)
-taper_initial_field!(vr_init,nz,nr,dz,src_iz,wavelength,ntaper)
-taper_initial_field!(vz_init,nz,nr,dz,src_iz,wavelength,ntaper)
-display(plot!(trr_init[:,1],title="initial-field tapering",xlabel="iz",ylabel="trr"))
+LPML_r,LPML_z,PML_Wr,PML_Wz,PML_IWr,PML_Wr2,PML_Wz2,PML_IWr2=init_PML_profile(LPML_r,LPML_z,Vmax,dr,dz,nr)
+#PML_check(LPML_r,LPML_z,Vmax,dr,dz,f0)
+
+
+#error()
+
+#==============================
+Receiver geometry (plane wave experiments)
+==============================#
+nrec,rec_vr,rec_vz,rec_tii,index_allrec_vr,index_allrec_vz,index_allrec_tii,
+nrec_PE,rec_vfr_PE,rec_pf_PE,rec_tii_PE,index_allrec_vfr_PE,index_allrec_pf_PE=make_receivers()
+
 
 src_index=[1 1]; #dummy
 drawmodel02(vz_init,nz,dz,nr,dr,src_index,index_allrec_tii,nrec,LPML_r,LPML_z)
 
+
+#==============================
+Snapshot settings
+==============================#
+nskip,snapshots_trr,snapshots_vr,snapshots_vz,
+nsnap,itvec_snap=init_snap(nt,nz,nr,100)
 #error()
 
-LPML_r,LPML_z,PML_Wr,PML_Wz,PML_IWr,PML_Wr2,PML_Wz2,PML_IWr2=init_PML_profile(LPML_r,LPML_z,Vmax,dr,dz,nr)
-
-#PML_check(LPML_r,LPML_z,Vmax,dr,dz,f0)
-#error()
-
-#nskip,snapshots_trr,snapshots_vr,snapshots_vz,nsnap,itvec_snap=init_snap_sparse(nt,nz,nr)
-nskip,snapshots_trr,snapshots_vr,snapshots_vz,nsnap,itvec_snap=init_snap(nt,nz,nr)
-#error()
-
-#drawmodel01(Vp,nz,dz,nr,dr,src_index,index_allrec_tii,nrec,n0Cerjan)
-#drawmodel02(Vp,nz,dz,nr,dr,src_index,index_allrec_tii,nrec,LPML_r,LPML_z)
-
-#error()
-#using ProfileView #when using @profview func()
-#Excution of main time loop
-#@code_warntype
-#main_loop!(nr,nz,dr,dz,Rho,Rhof,M,C,H,G,D1,D2,dt,nt,T,
-#   vr,vz,trr,tpp,tzz,trz,
-#   vfr,vfz,pf,
-#   Flag_AC,Flag_E,
-#   src_func,src_index,src_dn,
-#   nrec,index_allrec_vr,index_allrec_vz,index_allrec_tii,rec_vr,rec_vz,rec_tii,
-#   LPML_r,LPML_z,PML_Wr,PML_Wz,PML_IWr,PML_Wr2,PML_Wz2,PML_IWr2,
-#   snapshots_vr,snapshots_vz,snapshots_trr,nsnap,itvec_snap,nskip)
+#==============================
+Start main FD Loop
+==============================#
 
 main_loop!(nr,nz,dr,dz,Rho,Rhof,M,C,H,G,D1,D2,dt,nt,T,
    vr_init,vz_init,trr_init,tpp_init,tzz_init,trz_init,

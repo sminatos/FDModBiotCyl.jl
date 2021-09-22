@@ -727,118 +727,6 @@ function initialize_planewave(nr,nz,dr,dz,ir_wall,Rho,H,G,nt,tvec,dt,src_func,sr
 
 
 
-      #--Receiver positions----
-      #==
-         nrec=8
-         recgeom=zeros(nrec,2) #(z,r)
-         for irec=1:nrec
-            recgeom[irec,1]=srcgeom[1,1]-2.7432-(irec-1)*0.1524
-            recgeom[irec,2]=0.0
-         end
-      ==#
-      #---borehole center
-      nrec1=nz
-      recgeom1=zeros(nrec1,2) #(z,r)
-      for irec=1:nrec1
-         recgeom1[irec,1]=dz*(irec-1)
-         recgeom1[irec,2]=0.0
-      end
-
-      #--Receivers without interpolation
-      rec_vr1,rec_vz1,rec_tii1,index_allrec_vr1,index_allrec_vz1,index_allrec_tii1=init_receiver(recgeom1,nrec1,dr,dz,nr,nz,nt)
-
-      #---corresponding borehole wall
-      # exact boundrary is at (ir_wall-1)*dr+dr/2
-      # coincident location: vr and trz
-      # dr/2 inside elastci media: vz,tii,vphi,tpz
-      recgeom2=zeros(nrec1,2) #(z,r)
-      #--collect indexes for vr
-      #---homogeneous R version
-      for irec=1:nrec1
-         recgeom2[irec,1]=dz*(irec-1)
-         recgeom2[irec,2]=(ir_wall-1)*dr+dr/2
-      end
-      #---inhomogeneous R version (assuming Vp[1:ir_wall@z]=1500)
-   #   for irec=1:nrec1
-   #      ir_wall_now=maximum(findall(x->x==1500,Vp[irec,:])) #assuming nrec=nz
-   #      recgeom2[irec,1]=dz*(irec-1)
-   #      recgeom2[irec,2]=(ir_wall_now-1)*dr+dr/2 #this is a position of wall (good for vr)
-   #   end
-
-      #--Receivers without interpolation
-      rec_vr,rec_vz,rec_tii,index_allrec_vr2,index_allrec_vz_dummy,index_allrec_tii_dummy=init_receiver(recgeom2,nrec1,dr,dz,nr,nz,nt)
-      # repeat for tii
-      for irec=1:nrec1
-         recgeom2[irec,1]=dz*(irec-1)
-         recgeom2[irec,2]=(ir_wall-1)*dr+dr
-      end
-   #   for irec=1:nrec1
-   #      ir_wall_now=maximum(findall(x->x==1500,Vp[irec,:])) #assuming nrec=nz
-   #      recgeom2[irec,1]=dz*(irec-1) #this is a position good for tii (same as Vp)
-   #      recgeom2[irec,2]=(ir_wall_now-1)*dr+dr #this is a position of wall+dr/2 (good for vz and tii)
-   #   end
-      #--Receivers without interpolation
-   #   rec_vr,rec_vz,rec_tii,index_allrec_vr_dummy,index_allrec_vz2,index_allrec_tii2=init_receiver(recgeom2,nrec1,dr,dz,nr,nz,nt)
-      rec_vr,rec_vz,rec_tii,index_allrec_vr_dummy,index_allrec_vz_dummy,index_allrec_tii2=init_receiver(recgeom2,nrec1,dr,dz,nr,nz,nt)
-
-      # repeat for vz (be careful Vp is defined at tii and vr, and vz is located in between. Where to define "solid phase")
-      for irec=1:nrec1-1
-         ir_wall_up=maximum(findall(x->x==1500,Vp_E[irec,:])) #assuming nrec=nz
-         ir_wall_down=maximum(findall(x->x==1500,Vp_E[irec+1,:])) #assuming nrec=nz
-         if (ir_wall_up==ir_wall_down)
-            recgeom2[irec,1]=dz*(irec-1)+dz/2 #this is a position good for vz
-            recgeom2[irec,2]=(ir_wall_up-1)*dr+dr #this is a position of wall+dr/2 (good for vz and tii)
-         elseif (ir_wall_up>ir_wall_down) #radius gets smaller
-            recgeom2[irec,1]=dz*(irec-1)+dz/2 #this is a position good for vz
-            recgeom2[irec,2]=(ir_wall_up-1)*dr+dr #
-         elseif (ir_wall_up<ir_wall_down) #radius gets larger
-            recgeom2[irec,1]=dz*(irec-1)+dz/2 #this is a position good for vz
-            recgeom2[irec,2]=(ir_wall_down-1)*dr+dr #
-         else
-            error("ERROR in RECGEOM!")
-         end
-
-      end
-      #--Receivers without interpolation
-      rec_vr,rec_vz,rec_tii,index_allrec_vr_dummy,index_allrec_vz2,index_allrec_tii_dummy=init_receiver(recgeom2,nrec1,dr,dz,nr,nz,nt)
-
-
-      #--initializing arrays with correct nrec
-      nrec=nrec1*2
-      rec_vr=zeros(nt,nrec)
-      rec_vz=zeros(nt,nrec)
-      rec_tii=zeros(nt,nrec)
-      #---merge indexes
-      index_allrec_vr=zeros(nrec,2) #z,r
-      index_allrec_vz=zeros(nrec,2) #z,r
-      index_allrec_tii=zeros(nrec,2) #z,r
-      index_allrec_vr[1:nrec1,:]=index_allrec_vr1[1:nrec1,:]
-      index_allrec_vr[nrec1+1:2*nrec1,:]=index_allrec_vr2[1:nrec1,:]
-      index_allrec_vz[1:nrec1,:]=index_allrec_vz1[1:nrec1,:]
-      index_allrec_vz[nrec1+1:2*nrec1,:]=index_allrec_vz2[1:nrec1,:]
-      index_allrec_tii[1:nrec1,:]=index_allrec_tii1[1:nrec1,:]
-      index_allrec_tii[nrec1+1:2*nrec1,:]=index_allrec_tii2[1:nrec1,:]
-
-      index_allrec_vr=map(Int,index_allrec_vr)
-      index_allrec_vz=map(Int,index_allrec_vz)
-      index_allrec_tii=map(Int,index_allrec_tii)
-      #--Receivers with Interpolations.jl (not in main loop yet)
-      #rec_vr,rec_vz,rec_tzz,
-      #wis_allrec_vr,wis_allrec_vz,wis_allrec_tzz=init_receiver_interp(recgeom,nrec,dr,dz,nr,nz,nt)
-
-
-
-      #--Receivers vfr and pf----
-      nrec_PE=nr
-      recgeom_PE=zeros(nrec_PE,2) #(z,r)
-      for irec=1:nrec_PE
-#         recgeom_PE[irec,1]=(273-1)*dz
-         recgeom_PE[irec,1]=(320-1)*dz
-         recgeom_PE[irec,2]=dr*(irec-1)
-      end
-      #--Receivers without interpolation
-      rec_vfr_PE,rec_vfz_PE,rec_pf_PE,index_allrec_vfr_PE,index_allrec_vfz_PE,index_allrec_pf_PE=init_receiver(recgeom_PE,nrec_PE,dr,dz,nr,nz,nt)
-      rec_tii_PE=zeros(size(rec_pf_PE)) #for mean normal stress
 
       println("Initializing done")
       println("-------------")
@@ -863,8 +751,6 @@ function initialize_planewave(nr,nz,dr,dz,ir_wall,Rho,H,G,nt,tvec,dt,src_func,sr
       vz_init,vr_init,trr_init,tpp_init,tzz_init,
       trz_init,
       src_iz,noffset,
-      nrec,rec_vr,rec_vz,rec_tii,index_allrec_vr,index_allrec_vz,index_allrec_tii,
-      nrec_PE,rec_vfr_PE,rec_pf_PE,rec_tii_PE,index_allrec_vfr_PE,index_allrec_pf_PE,
       f0
 
 end # function init
