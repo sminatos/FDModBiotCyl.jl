@@ -4,8 +4,8 @@ export  init_fields_Por,
         update_stress_1st_Por!,
         ApplyBCLeft_velocity_1st_Por!,
         ApplyBCLeft_stress_1st_Por!,
-#    ApplyBCRight_velocity1D_Por01!, #->Peng06Mod
-#    ApplyBCRight_stress1D_Por01!, #->Peng06Mod
+        ApplyBCRight_velocity1D_Por01!,
+        ApplyBCRight_stress1D_Por01!, 
         ApplyBC_stress_AcousticMedia_TEST!,
         ApplyBC_stress_ElasticMedia_Ou!,
    #---Additional consideration at borehole wall (boreholewall.jl)
@@ -68,7 +68,7 @@ export  init_fields_Por,
 include("./fdmain.jl")
 include("./pml.jl")
 include("./boreholewall.jl")
-include("./receivers.jl")q
+include("./receivers.jl")
 include("./sources.jl")
 include("./snapshots.jl")
 include("./misc.jl")

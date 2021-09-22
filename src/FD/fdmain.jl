@@ -652,3 +652,101 @@ function ApplyBC_stress_ElasticMedia_Ou!(pf,Flag_E,nr,nz)
         end
     end
 end
+
+
+#-----------------------------
+# Boundary conditions at r=R (assuming plane-wave propagation)
+#-----------------------------
+function ApplyBCRight_velocity1D_Por01!(origin_r,vr,vz,
+    trr,tpp,tzz,trz,
+    vfr,vfz,pf,
+    Rho,Rhof,D1,D2,Flag_vf_zero,nr,nz,dr,dz,dt)
+    #updating velocity on Right most edge (it was Neumann BC), assuming only 1D wave propagation
+    #testing for plane wave inciden ce
+    #assuming LVTS, region 2 (may be this assumption is not nessesary)
+
+    #Por01: Poroelatic version (Note: 1st order)
+
+    #nonzero values at j=nr are
+    #j=nr->vphi,vz (1st), vr (zero)
+    #Make sure regular [update] function has been filled till the right edge!
+
+
+    #Following flag is 1 when no 1D assumption, but simply zeroing blank component (i.e., vr)
+    flag_zero=1
+
+if (flag_zero==1)
+    j=nr
+@inbounds for k=1:nz
+    vr[k,j]=0.0
+    vfr[k,j]=0.0
+end
+
+else
+
+    j=nr
+@inbounds for k=2:nz-1
+    r_now=(j-1)*dr+dr/2.0 #for vr (Mittet)
+    r_now=r_now+origin_r #for LVTS, region 2
+
+
+    #---option A: 1D elastic wave, i.e., vr is same as elastic, and vfr is zero
+    vr_now=vr[k,j]
+    trz_f1,trz_b1=trz[k,j],trz[k-1,j]
+    dztrz=(trz_f1-trz_b1)
+    dztrz=dztrz/dz
+
+    vr[k,j]=vr_now+dt/Rho[k,j]*(
+                +(trr[k,j]-tpp[k,j])/r_now
+                +dztrz
+                )
+    vfr[k,j]=0.0
+
+  end
+end #if
+end #function
+
+
+function ApplyBCRight_stress1D_Por01!(origin_r,vr,vz,
+    trz,
+    Gmat,nr,nz,dr,dz,dt)
+    #updating stress on Right most edge (it was Neumann BC), assuming only 1D wave propagation
+    #testing for plane wave inciden ce
+    #assuming LVTS, region 2 (may be this assumption is not nessesary)
+
+    #Por01: Poroelasic version (same as elastic, but reduced number of variables)
+
+    #nonzero values @j=nr are
+    #j=nr->tii,tpz (1st), trp,trz (zero)
+    #Make sure regular [update] function has been filled till the right edge!
+
+    #Following flag is 1 when no 1D assumption, but simply zeroing blank component (i.e., trp,trz)
+    flag_zero=1
+
+if (flag_zero==1)
+    j=nr
+@inbounds for k=3:nz-2
+    trz[k,j]=0.0
+end
+
+else
+
+    j=nr
+@inbounds for k=1:nz
+
+    r_now=(j-1)*dr+dr/2.0 #for trp,trz Mittet
+    r_now=r_now+origin_r #for LVTS, region 2
+
+    trz_now=trz[k,j]
+
+    vr_f1,vr_b1=vr[k+1,j],vr[k,j]
+    dzvr=(vr_f1-vr_b1)
+    dzvr=dzvr/dz
+    trz[k,j]=trz_now+dt*(
+               +G[k,j]*dzvr #mu*dzvr
+               )
+  end
+
+ end #if
+
+end #function

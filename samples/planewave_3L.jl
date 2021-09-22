@@ -122,7 +122,7 @@ using DelimitedFiles
 using Printf
 #
 using FDModBiotCyl
-include("../src/FD/Peng06Mod.jl") #Peng's exact solution to B.C.s of plane wave (MOD version. Use this.)
+#include("../src/FD/Peng06Mod.jl") #Peng's exact solution to B.C.s of plane wave (MOD version. Use this.)
 
 #---Loading Functions----
 #include("./PCylFDMod_Ou1st03.jl") #main modules. With acoustic, not good, but ok.
