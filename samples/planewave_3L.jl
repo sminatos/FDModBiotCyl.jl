@@ -93,9 +93,6 @@
 
 
 
-#using Plots
-#Plots.gr()
-#Plots.pyplot()
 
 #--
 # Threads.nthreads() displays number of available threads
@@ -109,15 +106,12 @@
 #
 using CPUTime
 using ProgressMeter
-using Interpolations
+#using Interpolations
 using MAT
-#using SpecialFunctions
-using Base64
-using DSP
-#using FFTW
+#using Base64
+#using DSP
 using Plots
 using JLD
-#using Dierckx
 using DelimitedFiles
 using Printf
 #
@@ -602,13 +596,13 @@ vfz_old=zeros(nz,nr)
 mean_tii=zeros(nz,nr)
 
 # Making sure RightBC for stress (zero values are trp and trz)
-ApplyBCRight_stress1D_Por01!(0.0,vr,vz, #Use with flag_zero=1 (see ApplyBCRight_stress1D01)
+ApplyBCRight_stress!(vr,vz, #Use with flag_zero=1 (see ApplyBCRight_stress1D01)
     trz,
     G,nr,nz,dr,dz,dt)
 
 #error()
-@showprogress for ii=1:nt
-#@showprogress for ii=1:201
+#@showprogress for ii=1:nt
+@showprogress for ii=1:1001
 #for ii=1:1
 
 
@@ -652,11 +646,11 @@ PML_update_vel!(vr,vz,trr,tpp,tzz,trz,vfr,vfz,pf,
 #   error()
 #end
 
-# Making sure RightBC for stress (zero values are vr)
-ApplyBCRight_velocity1D_Por01!(0.0,vr,vz,
-    trr,tpp,tzz,trz,
-    vfr,vfz,pf,
-    Rho,Rhof,D1,D2,Flag_vf_zero,nr,nz,dr,dz,dt)
+# Making sure RightBC for velocity (zero values are vr)
+ApplyBCRight_vel!(vr,vz,
+      trr,tpp,tzz,trz,
+      vfr,vfz,pf,
+      Rho,Rhof,D1,D2,Flag_vf_zero,nr,nz,dr,dz,dt)
 
 #---velocity B.Cs-----
 #Periodic Left Edge
@@ -666,18 +660,6 @@ ApplyBCLeft_vel!(vr,vz,trr,tpp,tzz,trz,vfr,vfz,pf,
                           Prz_T,Pzz_T,PzzPE_T,
                           Prz_B,Pzz_B,PzzPE_B,
                           LPML_z)
-#==
-ApplyBCLeft_velocity_1st_Por!(vr,vz,trr,tpp,tzz,trz,vfr,vfz,pf,
-                              Rho,Rhof,D1,D2,Flag_vf_zero,nr,nz,dr,dz,dt,LPML_z)
-ApplyBCLeft_velocity_1st_atPML_Top_Por!(vr,vz,trr,tpp,tzz,trz,vfr,vfz,pf,
-    Rho,Rhof,D1,D2,Flag_vf_zero,nr,nz,dr,dz,dt,
-    Prz_T,Pzz_T,PzzPE_T,
-    LPML_z)
-ApplyBCLeft_velocity_1st_atPML_Bottom_Por!(vr,vz,trr,tpp,tzz,trz,vfr,vfz,pf,
-    Rho,Rhof,D1,D2,Flag_vf_zero,nr,nz,dr,dz,dt,
-    Prz_B,Pzz_B,PzzPE_B,
-    LPML_z)
-==#
 
 #---Fluid-PE BC @borehole wall (test): replacing velocity values
 #ir_wall=10
@@ -688,42 +670,17 @@ update_vr_vfr_1st_vertical(vr,trr,tpp,tzz,trz,vfr,pf,
     ir_wall,Flag_AC,Flag_E)
 
 
-#just for checking purpose
-#calculate_divv_1st_Por!(divv,vr,vz,nr,nz,dr,dz)
-#calculate_divv_1st_Por!(divvf,vfr,vfz,nr,nz,dr,dz)
-
-#---Additional BC when Flag_Acoustic
-#ApplyBC_velocity_AcousticMedia!(vfr,vfz,Flag_AC,nr,nz)
-
-#--PML: update memory variables for stress (Rx and Sxx) using velocity at two time steps
+#PML: update memory variables for stress (Rx and Sxx) using velocity at two time steps
 PML_update_memRS!(Rz_T,Srz_T,RzPE_T,
-                           Rz_B,Srz_B,RzPE_B,
-                           Rr_R,Rp_R,Rrz_R,RrPE_R,RpPE_R,
-                           Rr_TR,Rp_TR,Rz_TR,Rrz_TR,Srz_TR,RrPE_TR,RpPE_TR,RzPE_TR,
-                           Rr_BR,Rp_BR,Rz_BR,Rrz_BR,Srz_BR,RrPE_BR,RpPE_BR,RzPE_BR,
-                           memT_vr,memT_vz,memT_vfr,memT_vfz,
-                           memB_vr,memB_vz,memT_vfr,memT_vfz,
-                           memR_vr,memR_vz,memR_vfr,memR_vfz,
-                           vr,vz,vfr,vfz,nr,nz,dr,dz,dt,LPML_z,LPML_r,PML_Wz,PML_Wr,PML_IWr,PML_Wz2,PML_Wr2,PML_IWr2)
-#==
-PML_update_memRS_1st_Top_Por!(Rz_T,Srz_T,RzPE_T,
-    memT_vr,memT_vz,memT_vfr,memT_vfz,
-    vr,vz,vfr,vfz,nr,nz,dr,dz,dt,LPML_z,LPML_r,PML_Wz,PML_Wz2)
-PML_update_memRS_1st_Bottom_Por!(Rz_B,Srz_B,RzPE_B,
-    memB_vr,memB_vz,memT_vfr,memT_vfz,
-    vr,vz,vfr,vfz,nr,nz,dr,dz,dt,LPML_z,LPML_r,PML_Wz,PML_Wz2)
-PML_update_memRS_1st_Right_Por!(Rr_R,Rp_R,Rrz_R,RrPE_R,RpPE_R,
-     memR_vr,memR_vz,memR_vfr,memR_vfz,
-     vr,vz,vfr,vfz,nr,nz,dr,dz,dt,LPML_z,LPML_r,PML_Wr,PML_IWr,PML_Wr2,PML_IWr2)
-PML_update_memRS_1st_TopRight_Por!(Rr_TR,Rp_TR,Rz_TR,Rrz_TR,Srz_TR,RrPE_TR,RpPE_TR,RzPE_TR,
-    memT_vr,memT_vz,memT_vfr,memT_vfz,
-    memR_vr,memR_vz,memR_vfr,memR_vfz,
-    vr,vz,vfr,vfz,nr,nz,dr,dz,dt,LPML_z,LPML_r,PML_Wz,PML_Wr,PML_IWr,PML_Wz2,PML_Wr2,PML_IWr2)
-PML_update_memRS_1st_BottomRight_Por!(Rr_BR,Rp_BR,Rz_BR,Rrz_BR,Srz_BR,RrPE_BR,RpPE_BR,RzPE_BR,
-    memB_vr,memB_vz,memB_vfr,memB_vfz,
-    memR_vr,memR_vz,memR_vfr,memR_vfz,
-    vr,vz,vfr,vfz,nr,nz,dr,dz,dt,LPML_z,LPML_r,PML_Wz,PML_Wr,PML_IWr,PML_Wz2,PML_Wr2,PML_IWr2)
-==#
+                  Rz_B,Srz_B,RzPE_B,
+                  Rr_R,Rp_R,Rrz_R,RrPE_R,RpPE_R,
+                  Rr_TR,Rp_TR,Rz_TR,Rrz_TR,Srz_TR,RrPE_TR,RpPE_TR,RzPE_TR,
+                  Rr_BR,Rp_BR,Rz_BR,Rrz_BR,Srz_BR,RrPE_BR,RpPE_BR,RzPE_BR,
+                  memT_vr,memT_vz,memT_vfr,memT_vfz,
+                  memB_vr,memB_vz,memT_vfr,memT_vfz,
+                  memR_vr,memR_vz,memR_vfr,memR_vfz,
+                  vr,vz,vfr,vfz,nr,nz,dr,dz,dt,LPML_z,LPML_r,PML_Wz,PML_Wr,PML_IWr,PML_Wz2,PML_Wr2,PML_IWr2)
+
 #--src injection (velocity)
 #srcamp=src_func[ii]
 #srcapply!(vz,src_index,src_dn,srcamp)
@@ -733,72 +690,41 @@ PML_update_memRS_1st_BottomRight_Por!(Rr_BR,Rp_BR,Rz_BR,Rrz_BR,Srz_BR,RrPE_BR,Rp
 
 
 #--PML: save stress at previous step
-PML_save_stress_Top_Por!(memT_trr,memT_tpp,memT_tzz,memT_trz,memT_pf,
-    trr,tpp,tzz,trz,pf,nr,nz,LPML_z,LPML_r)
-PML_save_stress_Bottom_Por!(memB_trr,memB_tpp,memB_tzz,memB_trz,memB_pf,
-    trr,tpp,tzz,trz,pf,nr,nz,LPML_z,LPML_r)
-PML_save_stress_Right_Por!(memR_trr,memR_tpp,memR_tzz,memR_trz,memR_pf,
-    trr,tpp,tzz,trz,pf,nr,nz,LPML_z,LPML_r)
+PML_save_stress!(memT_trr,memT_tpp,memT_tzz,memT_trz,memT_pf,
+                 memB_trr,memB_tpp,memB_tzz,memB_trz,memB_pf,
+                 memR_trr,memR_tpp,memR_tzz,memR_trz,memR_pf,
+                 trr,tpp,tzz,trz,pf,nr,nz,LPML_z,LPML_r)
 
-#    return
 #println("update stress")
 
-#keep current values before updating stress for just ckecing purpose
-#mycopy_mat(trr,trr_old,nz,nr)
-#mycopy_mat(tpp,tpp_old,nz,nr)
-#mycopy_mat(tzz,tzz_old,nz,nr)
-#mycopy_mat(pf,pf_old,nz,nr)
-
-#---updating stresses
-#update_stress_2nd_Por!(vr,vz,trr,tpp,tzz,trz,vfr,vfz,pf,
-#    M,C,H,G,nr,nz,dr,dz,LPML_z,LPML_r)
-
+# Main stress update!
 update_stress_1st_Por!(vr,vz,trr,tpp,tzz,trz,vfr,vfz,pf,
      M,C,H,G,nr,nz,dr,dz,dt,LPML_z,LPML_r)
 #error()
-#---Fluid-PE BC @borehole wall (test)
-#ApplyBC_stress_AcoustPE_1st_vertical(vr,vz,trr,tpp,tzz,trz,vfr,vfz,pf,
-#    M,C,H,G,nr,nz,dr,dz,ir,BCz1,BCz2)
 
-#return
-#--PML: stress update
-PML_update_stress_1st_Top_Por!(vr,vz,trr,tpp,tzz,trz,vfr,vfz,pf,
-    M,C,H,G,nr,nz,dr,dz,dt,Rz_T,Srz_T,RzPE_T,LPML_z,LPML_r)
-PML_update_stress_1st_Bottom_Por!(vr,vz,trr,tpp,tzz,trz,vfr,vfz,pf,
-    M,C,H,G,nr,nz,dr,dz,dt,Rz_B,Srz_B,RzPE_B,LPML_z,LPML_r)
-PML_update_stress_1st_Right_Por!(vr,vz,trr,tpp,tzz,trz,vfr,vfz,pf,
-     M,C,H,G,nr,nz,dr,dz,dt,
-     Rr_R,Rp_R,Rrz_R,RrPE_R,RpPE_R,
-     LPML_z,LPML_r)
-PML_update_stress_1st_TopRight_Por!(vr,vz,trr,tpp,tzz,trz,vfr,vfz,pf,
-    M,C,H,G,nr,nz,dr,dz,dt,
-    Rr_TR,Rp_TR,Rz_TR,Rrz_TR,Srz_TR,RrPE_TR,RpPE_TR,RzPE_TR,
-    LPML_z,LPML_r)
-PML_update_stress_1st_BottomRight_Por!(vr,vz,trr,tpp,tzz,trz,vfr,vfz,pf,
-    M,C,H,G,nr,nz,dr,dz,dt,
-    Rr_BR,Rp_BR,Rz_BR,Rrz_BR,Srz_BR,RrPE_BR,RpPE_BR,RzPE_BR,
-    LPML_z,LPML_r)
-
+#PML: stress update
+PML_update_stress!(vr,vz,trr,tpp,tzz,trz,vfr,vfz,pf,
+                  M,C,H,G,nr,nz,dr,dz,dt,
+                  Rz_T,Srz_T,RzPE_T,
+                  Rz_B,Srz_B,RzPE_B,
+                  Rr_R,Rp_R,Rrz_R,RrPE_R,RpPE_R,
+                  Rr_TR,Rp_TR,Rz_TR,Rrz_TR,Srz_TR,RrPE_TR,RpPE_TR,RzPE_TR,
+                  Rr_BR,Rp_BR,Rz_BR,Rrz_BR,Srz_BR,RrPE_BR,RpPE_BR,RzPE_BR,
+                  LPML_z,LPML_r)
 
 # Making sure RightBC for stress (zero values are trp and trz)
-ApplyBCRight_stress1D_Por01!(0.0,vr,vz, #Use with flag_zero=1 (see ApplyBCRight_stress1D01)
-  trz,
-  G,nr,nz,dr,dz,dt)
+ApplyBCRight_stress!(vr,vz, #Use with flag_zero=1 (see ApplyBCRight_stress1D01)
+     trz,
+     G,nr,nz,dr,dz,dt)
 
 #---stress B.Cs
 #println("update stress Left")
 #ApplyBCLeft_stress_2nd!(vr,vphi,vz,trr,tpp,tzz,trp,trz,tpz,lmat,mmat,m,nr,nz,dr,dz)
-ApplyBCLeft_stress_1st_Por!(vr,vz,trr,tpp,tzz,trz,vfr,vfz,pf,
-    M,C,H,G,nr,nz,dr,dz,dt,LPML_z)
-ApplyBCLeft_stress_1st_atPML_Top_Por!(vr,vz,trr,tpp,tzz,trz,vfr,vfz,pf,
-  M,C,H,G,nr,nz,dr,dz,dt,
-  Rz_T,Srz_T,RzPE_T,
-  LPML_z)
-ApplyBCLeft_stress_1st_atPML_Bottom_Por!(vr,vz,trr,tpp,tzz,trz,vfr,vfz,pf,
-  M,C,H,G,nr,nz,dr,dz,dt,
-  Rz_B,Srz_B,RzPE_B,
-  LPML_z)
-
+ApplyBCLeft_stress!(vr,vz,trr,tpp,tzz,trz,vfr,vfz,pf,
+                    M,C,H,G,nr,nz,dr,dz,dt,
+                    Rz_T,Srz_T,RzPE_T,
+                    Rz_B,Srz_B,RzPE_B,
+                    LPML_z)
 #return
 
 #--src injection (stress:monopole/dipole src)
@@ -810,37 +736,20 @@ ApplyBCLeft_stress_1st_atPML_Bottom_Por!(vr,vz,trr,tpp,tzz,trz,vfr,vfz,pf,
 
 
 #---Additional BC when Flag_Acoustic/Flag_Elastic
-#tmpik=500
-#tmpij=10
-#tmppf=-(trr[tmpik,tmpij]+tpp[tmpik,tmpij]+tzz[tmpik,tmpij])/3
-#println("---")
-#println(pf[tmpik,tmpij]," ",trr[tmpik,tmpij], " ",tzz[tmpik,tmpij]," ",tpp[tmpik,tmpij]," ", tmppf)
-#ApplyBC_stress_AcousticMedia!(trr,tpp,tzz,trz,pf,Flag_AC,nr,nz)
 ApplyBC_stress_AcousticMedia_TEST!(trr,tpp,tzz,trz,pf,Flag_AC,nr,nz)
-
 ApplyBC_stress_ElasticMedia_Ou!(pf,Flag_E,nr,nz)
-#ApplyBC_stress_ElasticMedia_Guan!(trr,tpp,tzz,pf,Flag_E,nr,nz)
-#error()
 
 
 #--PML: update memory variables for velocity (Pxx and Qxx) using stress at two time steps
-PML_update_memPQ_1st_Top_Por!(Prz_T,Pzz_T,PzzPE_T,
-  memT_trr,memT_tpp,memT_tzz,memT_trz,memT_pf,
-  trr,tpp,tzz,trz,pf,nr,nz,dr,dz,dt,LPML_z,LPML_r,PML_Wz,PML_Wz2)
-PML_update_memPQ_1st_Bottom_Por!(Prz_B,Pzz_B,PzzPE_B,
-    memB_trr,memB_tpp,memB_tzz,memB_trz,memB_pf,
-    trr,tpp,tzz,trz,pf,nr,nz,dr,dz,dt,LPML_z,LPML_r,PML_Wz,PML_Wz2)
-PML_update_memPQ_1st_Right_Por!(Prr_R,Qrp_R,Pzr_R,Qzp_R,PrrPE_R,
-     memR_trr,memR_tpp,memR_tzz,memR_trz,memR_pf,
-     trr,tpp,tzz,trz,pf,nr,nz,dr,dz,dt,LPML_z,LPML_r,PML_Wr,PML_IWr,PML_Wr2,PML_IWr2)
-PML_update_memPQ_1st_TopRight_Por!(Prr_TR,Qrp_TR,Prz_TR,Pzr_TR,Qzp_TR,Pzz_TR,PrrPE_TR,PzzPE_TR,
-  memT_trr,memT_tpp,memT_tzz,memT_trz,memT_pf,
-  memR_trr,memR_tpp,memR_tzz,memR_trz,memR_pf,
-  trr,tpp,tzz,trz,pf,nr,nz,dr,dz,dt,LPML_z,LPML_r,PML_Wz,PML_Wr,PML_IWr,PML_Wz2,PML_Wr2,PML_IWr2)
-PML_update_memPQ_1st_BottomRight_Por!(Prr_BR,Qrp_BR,Prz_BR,Pzr_BR,Qzp_BR,Pzz_BR,PrrPE_BR,PzzPE_BR,
-   memB_trr,memB_tpp,memB_tzz,memB_trz,memB_pf,
-   memR_trr,memR_tpp,memR_tzz,memR_trz,memR_pf,
-   trr,tpp,tzz,trz,pf,nr,nz,dr,dz,dt,LPML_z,LPML_r,PML_Wz,PML_Wr,PML_IWr,PML_Wz2,PML_Wr2,PML_IWr2)
+PML_update_memPQ!(Prz_T,Pzz_T,PzzPE_T,
+                  Prz_B,Pzz_B,PzzPE_B,
+                  Prr_R,Qrp_R,Pzr_R,Qzp_R,PrrPE_R,
+                  Prr_TR,Qrp_TR,Prz_TR,Pzr_TR,Qzp_TR,Pzz_TR,PrrPE_TR,PzzPE_TR,
+                  Prr_BR,Qrp_BR,Prz_BR,Pzr_BR,Qzp_BR,Pzz_BR,PrrPE_BR,PzzPE_BR,
+                  memT_trr,memT_tpp,memT_tzz,memT_trz,memT_pf,
+                  memB_trr,memB_tpp,memB_tzz,memB_trz,memB_pf,
+                  memR_trr,memR_tpp,memR_tzz,memR_trz,memR_pf,
+                  trr,tpp,tzz,trz,pf,nr,nz,dr,dz,dt,LPML_z,LPML_r,PML_Wz,PML_Wr,PML_IWr,PML_Wz2,PML_Wr2,PML_IWr2)
 
 #-----End of updating field----
 
@@ -857,15 +766,6 @@ mean_tii=(trr+tpp+tzz)/3
 getRecData_from_index!(mean_tii,rec_tii_PE,index_allrec_pf_PE,nrec_PE,ii)
 
 
-#getRecData!(rec_vr,rec_vz,rec_vphi,wis_allrec_vr,wis_allrec_vz,wis_allrec_vphi,ii,nrec)
-#getRecData_stress!(rec_tzz,wis_allrec_tzz,ii,nrec)
-#-Receiver field (interpolation)
-#getRecData(rec_vr,rec_vz,rec_vphi,wis_allrec_vr,wis_allrec_vz,wis_allrec_vphi,ii,nrec)
-#getRecData_stress(rec_tzz,wis_allrec_tzz,ii,nrec)
-#if (ii==501)
-#   return
-#   error()
-#end
 
 #--Snapshots
 #println("check snap")
@@ -891,42 +791,7 @@ if (length(check_snap)!=0)
    drawmodel_tmp2(snapshots_vz[:,:,cnt_snap],snapshots_trr[:,:,cnt_snap],snapshots_vr[:,:,cnt_snap],snapshots_vz[:,:,cnt_snap],nz,dz,nr,dr,
             src_index,index_allrec_tii,nrec,LPML_r,LPML_z)
 
-
-   #== just checking purpose:
-   mean_stress_dert=((trr+tpp+tzz)-(trr_old+tpp_old+tzz_old))/3/dt
-   pf_dert=(pf-pf_old)/dt
-   test_mean_stress_dert=(H-4/3*G).*(-1 ./C).*pf_dert+((H-4/3*G).*(-M./C)+C/3).*divvf
-   test_mean_stress_dert2=(H-4/3*G).*(-1 ./C).*pf_dert
-
-   mean_stress=(trr+tpp+tzz)/3
-   test_mean_stress=(H-4/3*G).*(-1 ./C).*pf
-
-   iij=151
-   iik=273
-   println("\n","(",mean_stress_dert[iik,iij],",",test_mean_stress_dert[iik,iij],",",test_mean_stress_dert2[iik,iij],")\n")
-   println("(",mean_stress[iik,iij],",",test_mean_stress[iik,iij],")\n")
-   ==#
-
 end
-
-#==just checking purpose:
-mean_stress_dert=((trr+tpp+tzz)-(trr_old+tpp_old+tzz_old))/3/dt
-pf_dert=(pf-pf_old)/dt
-test_mean_stress_dert=(H-4/3*G).*(-1 ./C).*pf_dert+((H-4/3*G).*(-M./C)+C/3).*divvf
-test_mean_stress_dert2=(H-4/3*G).*(-1 ./C).*pf_dert
-
-mean_stress=(trr+tpp+tzz)/3
-test_mean_stress=(H-4/3*G).*(-1 ./C).*pf
-
-iij=151
-iik=251
-println("\n","(",mean_stress_dert[iik,iij],",",test_mean_stress_dert[iik,iij],",",test_mean_stress_dert2[iik,iij],")\n")
-println("(",mean_stress[iik,iij],",",test_mean_stress[iik,iij],")\n")
-==#
-
-#if(ii==5201)
-#   error()
-#end
 
 end #i Time
 
@@ -1086,7 +951,7 @@ tvec_rec=tvec[1:iskip_rec:end]
 
 tmp_filename_full=string(@__DIR__,"/",tmp_filename)
 matwrite(tmp_filename_full, Dict(
-"tvec"=>tvec,"nr"=>nr,"nz"=>nz,"dr"=>dr,"dz"=>dz,"m"=>m,
+"tvec"=>tvec,"nr"=>nr,"nz"=>nz,"dr"=>dr,"dz"=>dz,
 "dt"=>dt,"nt"=>nt,"T"=>T,
 "tvec_rec"=>tvec_rec,
 "rec_tii"=>rec_tii[1:iskip_rec:end,:],

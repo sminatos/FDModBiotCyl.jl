@@ -546,6 +546,29 @@ end #function
 #-----------------------------
 # Boundary conditions at r=0 (stress)
 #-----------------------------
+#Entry function
+function ApplyBCLeft_stress!(vr,vz,trr,tpp,tzz,trz,vfr,vfz,pf,
+                             M,C,H,G,nr,nz,dr,dz,dt,
+                             Rz_T,Srz_T,RzPE_T,
+                             Rz_B,Srz_B,RzPE_B,
+                             LPML_z)
+
+
+    ApplyBCLeft_stress_1st_Por!(vr,vz,trr,tpp,tzz,trz,vfr,vfz,pf,
+                                M,C,H,G,nr,nz,dr,dz,dt,LPML_z)
+    ApplyBCLeft_stress_1st_atPML_Top_Por!(vr,vz,trr,tpp,tzz,trz,vfr,vfz,pf,
+                                          M,C,H,G,nr,nz,dr,dz,dt,
+                                          Rz_T,Srz_T,RzPE_T,
+                                          LPML_z)
+    ApplyBCLeft_stress_1st_atPML_Bottom_Por!(vr,vz,trr,tpp,tzz,trz,vfr,vfz,pf,
+                                             M,C,H,G,nr,nz,dr,dz,dt,
+                                             Rz_B,Srz_B,RzPE_B,
+                                             LPML_z)
+    
+end
+
+
+#---
 function ApplyBCLeft_stress_1st_Por!(vr,vz,trr,tpp,tzz,trz,vfr,vfz,pf,
     Mmat,Cmat,Hmat,Gmat,nr,nz,dr,dz,dt,LPML_z)
 #Filling field values at j==1 (r) & k=2:nz-1
@@ -680,6 +703,33 @@ end
 #-----------------------------
 # Boundary conditions at r=R (assuming plane-wave propagation)
 #-----------------------------
+#Entry function
+function ApplyBCRight_vel!(vr,vz,
+                           trr,tpp,tzz,trz,
+                           vfr,vfz,pf,
+                           Rho,Rhof,D1,D2,Flag_vf_zero,nr,nz,dr,dz,dt)
+
+
+    ApplyBCRight_velocity1D_Por01!(0.0,vr,vz,
+                                   trr,tpp,tzz,trz,
+                                   vfr,vfz,pf,
+                                   Rho,Rhof,D1,D2,Flag_vf_zero,nr,nz,dr,dz,dt)
+
+end
+
+
+
+function ApplyBCRight_stress!(vr,vz,
+                              trz,
+                              Gmat,nr,nz,dr,dz,dt)
+
+
+    ApplyBCRight_stress1D_Por01!(0.0,vr,vz,
+                                 trz,
+                                 Gmat,nr,nz,dr,dz,dt)
+end
+
+#-
 function ApplyBCRight_velocity1D_Por01!(origin_r,vr,vz,
     trr,tpp,tzz,trz,
     vfr,vfz,pf,

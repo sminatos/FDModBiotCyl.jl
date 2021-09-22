@@ -95,6 +95,67 @@ function PML_update_memRS!(Rz_T,Srz_T,RzPE_T,
 end
 
 
+#PML: stress update
+function PML_update_stress!(vr,vz,trr,tpp,tzz,trz,vfr,vfz,pf,
+                            M,C,H,G,nr,nz,dr,dz,dt,
+                            Rz_T,Srz_T,RzPE_T,
+                            Rz_B,Srz_B,RzPE_B,
+                            Rr_R,Rp_R,Rrz_R,RrPE_R,RpPE_R,
+                            Rr_TR,Rp_TR,Rz_TR,Rrz_TR,Srz_TR,RrPE_TR,RpPE_TR,RzPE_TR,
+                            Rr_BR,Rp_BR,Rz_BR,Rrz_BR,Srz_BR,RrPE_BR,RpPE_BR,RzPE_BR,
+                            LPML_z,LPML_r)
+
+
+    PML_update_stress_1st_Top_Por!(vr,vz,trr,tpp,tzz,trz,vfr,vfz,pf,
+                                   M,C,H,G,nr,nz,dr,dz,dt,Rz_T,Srz_T,RzPE_T,LPML_z,LPML_r)
+    PML_update_stress_1st_Bottom_Por!(vr,vz,trr,tpp,tzz,trz,vfr,vfz,pf,
+                                      M,C,H,G,nr,nz,dr,dz,dt,Rz_B,Srz_B,RzPE_B,LPML_z,LPML_r)
+    PML_update_stress_1st_Right_Por!(vr,vz,trr,tpp,tzz,trz,vfr,vfz,pf,
+                                     M,C,H,G,nr,nz,dr,dz,dt,
+                                     Rr_R,Rp_R,Rrz_R,RrPE_R,RpPE_R,
+                                     LPML_z,LPML_r)
+    PML_update_stress_1st_TopRight_Por!(vr,vz,trr,tpp,tzz,trz,vfr,vfz,pf,
+                                        M,C,H,G,nr,nz,dr,dz,dt,
+                                        Rr_TR,Rp_TR,Rz_TR,Rrz_TR,Srz_TR,RrPE_TR,RpPE_TR,RzPE_TR,
+                                        LPML_z,LPML_r)
+    PML_update_stress_1st_BottomRight_Por!(vr,vz,trr,tpp,tzz,trz,vfr,vfz,pf,
+                                           M,C,H,G,nr,nz,dr,dz,dt,
+                                           Rr_BR,Rp_BR,Rz_BR,Rrz_BR,Srz_BR,RrPE_BR,RpPE_BR,RzPE_BR,
+                                           LPML_z,LPML_r)
+end
+
+
+#PML: update memory variables for velocity (Pxx and Qxx) using stress at two time steps
+function PML_update_memPQ!(Prz_T,Pzz_T,PzzPE_T,
+                           Prz_B,Pzz_B,PzzPE_B,
+                           Prr_R,Qrp_R,Pzr_R,Qzp_R,PrrPE_R,
+                           Prr_TR,Qrp_TR,Prz_TR,Pzr_TR,Qzp_TR,Pzz_TR,PrrPE_TR,PzzPE_TR,
+                           Prr_BR,Qrp_BR,Prz_BR,Pzr_BR,Qzp_BR,Pzz_BR,PrrPE_BR,PzzPE_BR,
+                           memT_trr,memT_tpp,memT_tzz,memT_trz,memT_pf,
+                           memB_trr,memB_tpp,memB_tzz,memB_trz,memB_pf,
+                           memR_trr,memR_tpp,memR_tzz,memR_trz,memR_pf,
+                           trr,tpp,tzz,trz,pf,nr,nz,dr,dz,dt,LPML_z,LPML_r,PML_Wz,PML_Wr,PML_IWr,PML_Wz2,PML_Wr2,PML_IWr2)
+
+
+    PML_update_memPQ_1st_Top_Por!(Prz_T,Pzz_T,PzzPE_T,
+                                  memT_trr,memT_tpp,memT_tzz,memT_trz,memT_pf,
+                                  trr,tpp,tzz,trz,pf,nr,nz,dr,dz,dt,LPML_z,LPML_r,PML_Wz,PML_Wz2)
+    PML_update_memPQ_1st_Bottom_Por!(Prz_B,Pzz_B,PzzPE_B,
+                                     memB_trr,memB_tpp,memB_tzz,memB_trz,memB_pf,
+                                     trr,tpp,tzz,trz,pf,nr,nz,dr,dz,dt,LPML_z,LPML_r,PML_Wz,PML_Wz2)
+    PML_update_memPQ_1st_Right_Por!(Prr_R,Qrp_R,Pzr_R,Qzp_R,PrrPE_R,
+                                    memR_trr,memR_tpp,memR_tzz,memR_trz,memR_pf,
+                                    trr,tpp,tzz,trz,pf,nr,nz,dr,dz,dt,LPML_z,LPML_r,PML_Wr,PML_IWr,PML_Wr2,PML_IWr2)
+    PML_update_memPQ_1st_TopRight_Por!(Prr_TR,Qrp_TR,Prz_TR,Pzr_TR,Qzp_TR,Pzz_TR,PrrPE_TR,PzzPE_TR,
+                                       memT_trr,memT_tpp,memT_tzz,memT_trz,memT_pf,
+                                       memR_trr,memR_tpp,memR_tzz,memR_trz,memR_pf,
+                                       trr,tpp,tzz,trz,pf,nr,nz,dr,dz,dt,LPML_z,LPML_r,PML_Wz,PML_Wr,PML_IWr,PML_Wz2,PML_Wr2,PML_IWr2)
+    PML_update_memPQ_1st_BottomRight_Por!(Prr_BR,Qrp_BR,Prz_BR,Pzr_BR,Qzp_BR,Pzz_BR,PrrPE_BR,PzzPE_BR,
+                                          memB_trr,memB_tpp,memB_tzz,memB_trz,memB_pf,
+                                          memR_trr,memR_tpp,memR_tzz,memR_trz,memR_pf,
+                                          trr,tpp,tzz,trz,pf,nr,nz,dr,dz,dt,LPML_z,LPML_r,PML_Wz,PML_Wr,PML_IWr,PML_Wz2,PML_Wr2,PML_IWr2)
+end
+
 
 
 
