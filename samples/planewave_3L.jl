@@ -137,6 +137,31 @@ using FDModBiotCyl
 @__FILE__
 
 
+#================
+Drawing model
+================#
+function drawmodel(Field_Var,nz,dz,nr,dr,src_index,index_allrec,nrec,LPML_r,LPML_z)
+   println("Model drawing...")
+   zvec=[0:dz:(nz-1)*dz]
+   rvec=[0:dr:(nr-1)*dr]
+   R=(nr-1)*dr
+#   plt1=heatmap(rvec,zvec,Vp,yflip=true,xlabel="R (m)",ylabel="Z (m)",ratio=1)
+   plt1=heatmap(rvec,zvec,Field_Var,yflip=true,xlabel="R (m)",ylabel="Z (m)")
+   plot!([(src_index[2]-1)*dr],[(src_index[1]-1)*dz],label="",markershape=:circle,markersize=5,markerstrokewidth=0,seriescolor=:red)
+   plot!((index_allrec[:,2]-ones(nrec))*dr,(index_allrec[:,1]-ones(nrec))*dz,label="",markershape=:cross,markersize=5,markerstrokewidth=0,seriescolor=:red)
+   plot!([0;R],ones(2)*(LPML_z-1)*dz,label="",color=:black)
+   plot!([0;R],ones(2)*((nz-LPML_z+1)*dz),label="",color=:black)
+   plot!(ones(2)*((nr-LPML_r+1)*dr),[0;(nz-1)*dz],label="",color=:black)
+   display(plot(plt1))
+   tmp_filename=@sprintf "tmp_FDmodel.png"
+   tmp_filename_full=string(@__DIR__,"/",tmp_filename)
+   png(tmp_filename_full)
+   println("--------")
+   println("Model config figure is saved in:", tmp_filename_full)
+   println("--------")
+end
+
+
 function tmp_makemodel()
 #poroelasticity version
 
@@ -353,269 +378,6 @@ function tmp_makemodel()
    return nr,nz,dr,dz,Rho,Rhof,M,C,H,G,D1,D2,Flag_AC,Flag_E,ir_wall
 end
 
-function init02(nr,nz,dr,dz,ir_wall,Rho,H,G)
-   #poroelasticity version
-   #plane wave version
-
-
-   #ir_wall: assuming Vp[1:ir_wall]=1500
-   println("-------------")
-   println("Initializing...")
-
-
-#---initializing field matrices
-   vr,vz,trr,tpp,tzz,trz,vfr,vfz,pf=init_fields_Por(nz,nr) #
-
-#---Source settings
-#--constants defined ealier
-#   @show m=0 #monopole=0, dipole=1
-#   dt=1.0E-6 #Fig6
-#   nt=3001 #Fig6
-#   T=(nt-1)*dt
-
-   f0=200 #src Freq Ou
-   delay=1/f0*1.0
-   r0=1e-4 #small src radius
-   #--borehole source
-   #src_func,volume_injection_func,tvec=makesrc_multipole01(f0,delay,dz,dt,nt,T,r0,m)
-   #--body force source
-   #rho_at_src=Rho[Int(ceil(srcgeom[1]/dz)),Int(ceil(srcgeom[2]/dr)+1)]
-   tvec=range(0.0,T,length=nt) # range object (no memory allocation)
-   tvec=collect(tvec) # a vector
-   src_func=myricker2(tvec,f0,delay,2) #when using 2nd derivative Gaussian (good for DWI)
-   #src_func=myricker2(tvec,f0,delay,1) #when using 1st derivative Gaussian (Randall?)
-   #src_func=myricker2(tvec,f0,delay,3) #when using 3rd derivative Gaussian
-
-   #set for Guan test
-   #Tc=2E-3
-   #src_func=mywavelet_TsangRader(tvec,f0,Tc)
-
-   tmp_maxamp=maximum(map(abs,src_func))
-   src_func=src_func/tmp_maxamp
-   display(plot(tvec,src_func[:],title="src function"))
-   tmpfilename_src=string(@__DIR__,"/src_function.png")
-   png(tmpfilename_src)
-   println("Source signature figure saved in ",tmpfilename_src)
-#   error()
-   #--normal incidence plane wave setttings--
-   #   srcdepth=(nz-1)*dz*1/4
-#   srcdepth=30.
-   srcdepth=28.
-
-   #--update: by using RightBC1D, and complete filling values till Right edge, no taper and offset are used.
-   ntaper=0
-   noffset=0
-
-   # Schoenberg's plane wave solution as BC
-   # In order to use Modulues (PengMod.jl) for elastic media, first creating elastic properties matrices (Vp,Vs,Rho)
-   # as large as modeling domain, but accessing only elastic part (please make sure if this is the case)
-   Vp_E=(H./Rho).^0.5
-   Vs_E=(G./Rho).^0.5
-   Rho_E=zeros(nz,nr)
-   mycopy_mat(Rho,Rho_E,nz,nr)
-
-
-   #--now module is available--
-   vz_srcBC,vr_srcBC,vphi_srcBC,
-   trr_srcBC,tpp_srcBC,tzz_srcBC,trp_srcBC,trz_srcBC,tpz_srcBC,
-   src_iz=Peng_solution(nr,nz,dr,dz,ir_wall,tvec,src_func,srcdepth,f0,ntaper,noffset,Vp_E,Vs_E,Rho_E)
-
-   #make sure tvec of vel and stress are correct
-   tvec_vel=copy(tvec)
-   tvec_stress=copy(tvec)
-   tvec_stress=tvec_stress+dt/2*ones(nt) #default. see also Peng_solution02
-#   tvec_stress=tvec_stress-dt/2*ones(nt) #Needs pre-update. see also Peng_solution02
-
-   vz_init,vr_init,vphi_init,trr_init,tpp_init,tzz_init,
-   trp_init,trz_init,tpz_init=Schoenberg_solution_initialBC(nr,nz,dr,dz,ir_wall,Vp_E,
-                              tvec_vel,tvec_stress,
-                              srcdepth,f0,delay,
-                              vz_srcBC,vr_srcBC,vphi_srcBC,
-                              trr_srcBC,tpp_srcBC,tzz_srcBC,trp_srcBC,trz_srcBC,tpz_srcBC,
-                              ntaper,noffset)
-
-   # Schoenberg's plane wave solution as initial condition
-   #   vz_init,vr_init,src_iz=Schoenberg_solution_initialBC01(nr,nz,dr,dz,ir_wall,tvec,src_func,srcdepth,f0,delay,ntaper,noffset)
-
-      if (m==0)
-         println("====Plane wave source=====")
-         @show srcdepth,src_iz
-      else
-         error("Check m value!")
-      end
-
-
-
-      #--Receiver positions----
-      #==
-         nrec=8
-         recgeom=zeros(nrec,2) #(z,r)
-         for irec=1:nrec
-            recgeom[irec,1]=srcgeom[1,1]-2.7432-(irec-1)*0.1524
-            recgeom[irec,2]=0.0
-         end
-      ==#
-      #---borehole center
-      nrec1=nz
-      recgeom1=zeros(nrec1,2) #(z,r)
-      for irec=1:nrec1
-         recgeom1[irec,1]=dz*(irec-1)
-         recgeom1[irec,2]=0.0
-      end
-
-      #--Receivers without interpolation
-      rec_vr1,rec_vz1,rec_tii1,index_allrec_vr1,index_allrec_vz1,index_allrec_tii1=init_receiver(recgeom1,nrec1,dr,dz,nr,nz,nt)
-
-      #---corresponding borehole wall
-      # exact boundrary is at (ir_wall-1)*dr+dr/2
-      # coincident location: vr and trz
-      # dr/2 inside elastci media: vz,tii,vphi,tpz
-      recgeom2=zeros(nrec1,2) #(z,r)
-      #--collect indexes for vr
-      #---homogeneous R version
-      for irec=1:nrec1
-         recgeom2[irec,1]=dz*(irec-1)
-         recgeom2[irec,2]=(ir_wall-1)*dr+dr/2
-      end
-      #---inhomogeneous R version (assuming Vp[1:ir_wall@z]=1500)
-   #   for irec=1:nrec1
-   #      ir_wall_now=maximum(findall(x->x==1500,Vp[irec,:])) #assuming nrec=nz
-   #      recgeom2[irec,1]=dz*(irec-1)
-   #      recgeom2[irec,2]=(ir_wall_now-1)*dr+dr/2 #this is a position of wall (good for vr)
-   #   end
-
-      #--Receivers without interpolation
-      rec_vr,rec_vz,rec_tii,index_allrec_vr2,index_allrec_vz_dummy,index_allrec_tii_dummy=init_receiver(recgeom2,nrec1,dr,dz,nr,nz,nt)
-      # repeat for tii
-      for irec=1:nrec1
-         recgeom2[irec,1]=dz*(irec-1)
-         recgeom2[irec,2]=(ir_wall-1)*dr+dr
-      end
-   #   for irec=1:nrec1
-   #      ir_wall_now=maximum(findall(x->x==1500,Vp[irec,:])) #assuming nrec=nz
-   #      recgeom2[irec,1]=dz*(irec-1) #this is a position good for tii (same as Vp)
-   #      recgeom2[irec,2]=(ir_wall_now-1)*dr+dr #this is a position of wall+dr/2 (good for vz and tii)
-   #   end
-      #--Receivers without interpolation
-   #   rec_vr,rec_vz,rec_tii,index_allrec_vr_dummy,index_allrec_vz2,index_allrec_tii2=init_receiver(recgeom2,nrec1,dr,dz,nr,nz,nt)
-      rec_vr,rec_vz,rec_tii,index_allrec_vr_dummy,index_allrec_vz_dummy,index_allrec_tii2=init_receiver(recgeom2,nrec1,dr,dz,nr,nz,nt)
-
-      # repeat for vz (be careful Vp is defined at tii and vr, and vz is located in between. Where to define "solid phase")
-      for irec=1:nrec1-1
-         ir_wall_up=maximum(findall(x->x==1500,Vp_E[irec,:])) #assuming nrec=nz
-         ir_wall_down=maximum(findall(x->x==1500,Vp_E[irec+1,:])) #assuming nrec=nz
-         if (ir_wall_up==ir_wall_down)
-            recgeom2[irec,1]=dz*(irec-1)+dz/2 #this is a position good for vz
-            recgeom2[irec,2]=(ir_wall_up-1)*dr+dr #this is a position of wall+dr/2 (good for vz and tii)
-         elseif (ir_wall_up>ir_wall_down) #radius gets smaller
-            recgeom2[irec,1]=dz*(irec-1)+dz/2 #this is a position good for vz
-            recgeom2[irec,2]=(ir_wall_up-1)*dr+dr #
-         elseif (ir_wall_up<ir_wall_down) #radius gets larger
-            recgeom2[irec,1]=dz*(irec-1)+dz/2 #this is a position good for vz
-            recgeom2[irec,2]=(ir_wall_down-1)*dr+dr #
-         else
-            error("ERROR in RECGEOM!")
-         end
-
-      end
-      #--Receivers without interpolation
-      rec_vr,rec_vz,rec_tii,index_allrec_vr_dummy,index_allrec_vz2,index_allrec_tii_dummy=init_receiver(recgeom2,nrec1,dr,dz,nr,nz,nt)
-
-
-      #--initializing arrays with correct nrec
-      nrec=nrec1*2
-      rec_vr=zeros(nt,nrec)
-      rec_vz=zeros(nt,nrec)
-      rec_tii=zeros(nt,nrec)
-      #---merge indexes
-      index_allrec_vr=zeros(nrec,2) #z,r
-      index_allrec_vz=zeros(nrec,2) #z,r
-      index_allrec_tii=zeros(nrec,2) #z,r
-      index_allrec_vr[1:nrec1,:]=index_allrec_vr1[1:nrec1,:]
-      index_allrec_vr[nrec1+1:2*nrec1,:]=index_allrec_vr2[1:nrec1,:]
-      index_allrec_vz[1:nrec1,:]=index_allrec_vz1[1:nrec1,:]
-      index_allrec_vz[nrec1+1:2*nrec1,:]=index_allrec_vz2[1:nrec1,:]
-      index_allrec_tii[1:nrec1,:]=index_allrec_tii1[1:nrec1,:]
-      index_allrec_tii[nrec1+1:2*nrec1,:]=index_allrec_tii2[1:nrec1,:]
-
-      index_allrec_vr=map(Int,index_allrec_vr)
-      index_allrec_vz=map(Int,index_allrec_vz)
-      index_allrec_tii=map(Int,index_allrec_tii)
-      #--Receivers with Interpolations.jl (not in main loop yet)
-      #rec_vr,rec_vz,rec_tzz,
-      #wis_allrec_vr,wis_allrec_vz,wis_allrec_tzz=init_receiver_interp(recgeom,nrec,dr,dz,nr,nz,nt)
-
-
-
-      #--Receivers vfr and pf----
-      nrec_PE=nr
-      recgeom_PE=zeros(nrec_PE,2) #(z,r)
-      for irec=1:nrec_PE
-#         recgeom_PE[irec,1]=(273-1)*dz
-         recgeom_PE[irec,1]=(320-1)*dz
-         recgeom_PE[irec,2]=dr*(irec-1)
-      end
-      #--Receivers without interpolation
-      rec_vfr_PE,rec_vfz_PE,rec_pf_PE,index_allrec_vfr_PE,index_allrec_vfz_PE,index_allrec_pf_PE=init_receiver(recgeom_PE,nrec_PE,dr,dz,nr,nz,nt)
-      rec_tii_PE=zeros(size(rec_pf_PE)) #for mean normal stress
-
-      println("Initializing done")
-      println("-------------")
-
-
-#   return m,vr,vphi,vz,trr,tpp,tzz,trp,trz,tpz,mmat,lmat,dt,nt,T,src_func,tvec,src_index,src_dn,nrec,rec_vr,rec_vz,rec_tii,index_allrec_vr,index_allrec_vz,index_allrec_tii
-   return vr,vz,trr,tpp,tzz,trz,vfr,vfz,pf,src_func,tvec,
-      vz_srcBC,vr_srcBC,
-      trr_srcBC,tpp_srcBC,tzz_srcBC,trz_srcBC,
-      vz_init,vr_init,trr_init,tpp_init,tzz_init,
-      trz_init,
-      src_iz,noffset,
-      nrec,rec_vr,rec_vz,rec_tii,index_allrec_vr,index_allrec_vz,index_allrec_tii,
-      nrec_PE,rec_vfr_PE,rec_pf_PE,rec_tii_PE,index_allrec_vfr_PE,index_allrec_pf_PE,
-      f0
-
-end # function init
-
-
-function init_snap_sparse(nt,nz,nr)
-   #---Initializing snapshots (sparse version)
-   nskip=100
-   nr_sp=0
-   for ir=1:10:nr
-      nr_sp=nr_sp+1
-   end
-   nz_sp=0
-   for iz=1:10:nz
-      nz_sp=nz_sp+1
-   end
-
-   snapshots_vr,snapshots_vz,nsnap,itvec_snap=init_snapshots_v(nskip,nt,nz_sp,nr_sp)
-   snapshots_trr,nsnap,itvec_snap=init_snapshots_t(nskip,nt,nz_sp,nr_sp)
-   return nskip,snapshots_trr,snapshots_vr,snapshots_vz,nsnap,itvec_snap
-end
-
-
-function drawmodel02(Vp,nz,dz,nr,dr,src_index,index_allrec_tii,nrec,LPML_r,LPML_z)
-   println("Model drawing...")
-   zvec=[0:dz:(nz-1)*dz]
-   rvec=[0:dr:(nr-1)*dr]
-   R=(nr-1)*dr
-#   plt1=heatmap(rvec,zvec,Vp,yflip=true,xlabel="R (m)",ylabel="Z (m)",ratio=1)
-   plt1=heatmap(rvec,zvec,Vp,yflip=true,xlabel="R (m)",ylabel="Z (m)")
-   plot!([(src_index[2]-1)*dr],[(src_index[1]-1)*dz],label="",markershape=:circle,markersize=5,markerstrokewidth=0,seriescolor=:red)
-   plot!((index_allrec_tii[:,2]-ones(nrec))*dr,(index_allrec_tii[:,1]-ones(nrec))*dz,label="",markershape=:cross,markersize=5,markerstrokewidth=0,seriescolor=:red)
-   plot!([0;R],ones(2)*(LPML_z-1)*dz,label="",color=:black)
-   plot!([0;R],ones(2)*((nz-LPML_z+1)*dz),label="",color=:black)
-   plot!(ones(2)*((nr-LPML_r+1)*dr),[0;(nz-1)*dz],label="",color=:black)
-   display(plot(plt1))
-#   png("tmp_FDmodel.png")
-   tmp_filename=@sprintf "tmp_FDmodel.png"
-   tmp_filename_full=string(@__DIR__,"/",tmp_filename)
-   png(tmp_filename_full)
-   println("--------")
-   println("Model config figure is saved in:", tmp_filename_full)
-   println("--------")
-end
 
 
 function drawmodel_tmp(Data1,Data2,nz,dz,nr,dr,src_index,index_allrec_tii,nrec,LPML_r,LPML_z)
@@ -672,45 +434,6 @@ function drawmodel_tmp2(Data1,Data2,Data3,Data4,nz,dz,nr,dr,src_index,index_allr
 
 end
 
-#--calculate divergence of pariticle velocity (assuming axisymetric)
-function wave_div01!(divV,nr,nz,dr,dz,vr,vz)
-   #div(u)=1/r*dur/dr+duz/dz: location of vphi,tii (Mittet)
-#@inbounds Threads.@threads
-   for j=3:nr-2
-      for k=3:nz-2
-         r_now=(j-1)*dr #position of tii (nonaxis to avoid singularity)
-         vr_f1,vr_b1=vr[k,j],vr[k,j-1]
-         vr_f2,vr_b2=vr[k,j+1],vr[k,j-2]
-         vz_f1,vz_b1=vz[k,j],vz[k-1,j]
-         vz_f2,vz_b2=vz[k+1,j],vz[k-2,j]
-         drvr=9.0/8.0*(vr_f1-vr_b1)-1.0/24.0*(vr_f2-vr_b2)
-         drvr=drvr/dr
-         dzvz=9.0/8.0*(vz_f1-vz_b1)-1.0/24.0*(vz_f2-vz_b2)
-         dzvz=dzvz/dz
-         divV[k,j]=1.0/r_now*drvr+dzvz
-      end
-   end
-end
-
-#--calculate curl of pariticle velocity (assuming axisymetric)
-function wave_curl01!(curV,nr,nz,dr,dz,vr,vz)
-   #curl(u)=dur/dz-duz/dr: location of trz (Mittet)
-#@inbounds Threads.@threads
-   for j=3:nr-2
-      for k=3:nz-2
-         r_now=(j-1)*dr+dr/2.0 #position of trz
-         vr_f1,vr_b1=vr[k+1,j],vr[k,j]
-         vr_f2,vr_b2=vr[k+2,j],vr[k-1,j]
-         vz_f1,vz_b1=vz[k,j+1],vz[k,j]
-         vz_f2,vz_b2=vz[k,j+2],vz[k,j-1]
-         dzvr=9.0/8.0*(vr_f1-vr_b1)-1.0/24.0*(vr_f2-vr_b2)
-         dzvr=dzvr/dz
-         drvz=9.0/8.0*(vz_f1-vz_b1)-1.0/24.0*(vz_f2-vz_b2)
-         drvz=drvz/dr
-         curV[k,j]=dzvr-drvz
-      end
-   end
-end
 
 #---function to create receiver geometry for plane wave experiment ()temporary
 function make_receivers()
@@ -1291,8 +1014,11 @@ nrec,rec_vr,rec_vz,rec_tii,index_allrec_vr,index_allrec_vz,index_allrec_tii,
 nrec_PE,rec_vfr_PE,rec_pf_PE,rec_tii_PE,index_allrec_vfr_PE,index_allrec_pf_PE=make_receivers()
 
 
+#==============================
+Check model
+==============================#
 src_index=[1 1]; #dummy
-drawmodel02(vz_init,nz,dz,nr,dr,src_index,index_allrec_tii,nrec,LPML_r,LPML_z)
+drawmodel(vz_init,nz,dz,nr,dr,src_index,index_allrec_tii,nrec,LPML_r,LPML_z)
 
 
 #==============================
@@ -1300,7 +1026,7 @@ Snapshot settings
 ==============================#
 nskip,snapshots_trr,snapshots_vr,snapshots_vz,
 nsnap,itvec_snap=init_snap(nt,nz,nr,100)
-#error()
+error()
 
 #==============================
 Start main FD Loop
