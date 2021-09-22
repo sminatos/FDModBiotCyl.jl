@@ -426,6 +426,29 @@ end #function
 #-----------------------------
 # Boundary conditions at r=0 (velocity)
 #-----------------------------
+#Entry function
+function ApplyBCLeft_vel!(vr,vz,trr,tpp,tzz,trz,vfr,vfz,pf,
+                          rhomat,rhofmat,D1mat,D2mat,Flagmat_vf_zero,
+                          nr,nz,dr,dz,dt,
+                          Prz_T,Pzz_T,PzzPE_T,
+                          Prz_B,Pzz_B,PzzPE_B,
+                          LPML_z)
+
+    ApplyBCLeft_velocity_1st_Por!(vr,vz,trr,tpp,tzz,trz,vfr,vfz,pf,
+                                  rhomat,rhofmat,D1mat,D2mat,Flagmat_vf_zero,nr,nz,dr,dz,dt,LPML_z)
+    ApplyBCLeft_velocity_1st_atPML_Top_Por!(vr,vz,trr,tpp,tzz,trz,vfr,vfz,pf,
+                                            rhomat,rhofmat,D1mat,D2mat,Flagmat_vf_zero,nr,nz,dr,dz,dt,
+                                            Prz_T,Pzz_T,PzzPE_T,
+                                            LPML_z)
+    ApplyBCLeft_velocity_1st_atPML_Bottom_Por!(vr,vz,trr,tpp,tzz,trz,vfr,vfz,pf,
+                                               rhomat,rhofmat,D1mat,D2mat,Flagmat_vf_zero,nr,nz,dr,dz,dt,
+                                               Prz_B,Pzz_B,PzzPE_B,
+                                               LPML_z)
+
+end
+
+
+#-------------
 function ApplyBCLeft_velocity_1st_Por!(vr,vz,trr,tpp,tzz,trz,vfr,vfz,pf,
     rhomat,rhofmat,D1mat,D2mat,Flagmat_vf_zero,nr,nz,dr,dz,dt,LPML_z)
 #Filling field values at j==1 (r) & k=2:nz-1

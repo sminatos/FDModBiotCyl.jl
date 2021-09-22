@@ -574,12 +574,11 @@ function main_loop!(nr,nz,dr,dz,Rho,Rhof,M,C,H,G,D1,D2,dt,nt,T,
 
 #println("start")
 
-m=0
-
 #--
 Flag_vf_zero=get_Flag_vf_zero(Flag_AC,Flag_E,nr,nz)
 divV=zeros(nz,nr)
 curV=zeros(nz,nr)
+
 #initilize matrices of PML
 Prz_T,Pzz_T,Rz_T,Srz_T,PzzPE_T,RzPE_T,
 Prz_B,Pzz_B,Rz_B,Srz_B,PzzPE_B,RzPE_B,
@@ -602,15 +601,6 @@ vfz_old=zeros(nz,nr)
 
 mean_tii=zeros(nz,nr)
 
-#== just for checking purpose
-trr_old=zeros(nz,nr)
-tpp_old=zeros(nz,nr)
-tzz_old=zeros(nz,nr)
-pf_old=zeros(nz,nr)
-divv=zeros(nz,nr)
-divvf=zeros(nz,nr)
-==#
-
 # Making sure RightBC for stress (zero values are trp and trz)
 ApplyBCRight_stress1D_Por01!(0.0,vr,vz, #Use with flag_zero=1 (see ApplyBCRight_stress1D01)
     trz,
@@ -626,10 +616,10 @@ ApplyBCRight_stress1D_Por01!(0.0,vr,vz, #Use with flag_zero=1 (see ApplyBCRight_
 #----Time at (ii-1)*dt---(updating velocities)-----
 
 #--PML: save velocity at previous step
-PML_save_vel_Top_Por!(memT_vr,memT_vz,memT_vfr,memT_vfz,vr,vz,vfr,vfz,nr,nz,LPML_z,LPML_r)
-PML_save_vel_Bottom_Por!(memB_vr,memB_vz,memB_vfr,memB_vfz,vr,vz,vfr,vfz,nr,nz,LPML_z,LPML_r)
-PML_save_vel_Right_Por!(memR_vr,memR_vz,memR_vfr,memR_vfz,vr,vz,vfr,vfz,nr,nz,LPML_z,LPML_r)
-
+PML_save_vel!(memT_vr,memT_vz,memT_vfr,memT_vfz,
+              memB_vr,memB_vz,memB_vfr,memB_vfz,
+              memR_vr,memR_vz,memR_vfr,memR_vfz,
+              vr,vz,vfr,vfz,nr,nz,LPML_z,LPML_r)
 #println("update vel")
 
 #keep current values before updating velocity for Acoustic-Poroelastic BC later
@@ -638,32 +628,25 @@ mycopy_mat(vz,vz_old,nz,nr)
 mycopy_mat(vfr,vfr_old,nz,nr)
 mycopy_mat(vfz,vfz_old,nz,nr)
 
-
+# Main velocity update!
 update_velocity_1st_Por!(vr,vz,trr,tpp,tzz,trz,vfr,vfz,pf,Rho,Rhof,D1,D2,Flag_vf_zero,nr,nz,dr,dz,dt,LPML_z,LPML_r)
+
 #error()
 
-#--PML: update velocity
-PML_update_velocity_1st_Top_Por!(vr,vz,trr,tpp,tzz,trz,vfr,vfz,pf,
-    Rho,Rhof,D1,D2,Flag_vf_zero,nr,nz,dr,dz,dt,Prz_T,Pzz_T,PzzPE_T,LPML_z,LPML_r)
-PML_update_velocity_1st_Bottom_Por!(vr,vz,trr,tpp,tzz,trz,vfr,vfz,pf,
-    Rho,Rhof,D1,D2,Flag_vf_zero,nr,nz,dr,dz,dt,Prz_B,Pzz_B,PzzPE_B,LPML_z,LPML_r)
-PML_update_velocity_1st_Right_Por!(vr,vz,trr,tpp,tzz,trz,vfr,vfz,pf,
-  Rho,Rhof,D1,D2,Flag_vf_zero,nr,nz,dr,dz,dt,
-  Prr_R,Qrp_R,Pzr_R,Qzp_R,Rr_R,Rp_R,Rrz_R,
-  PrrPE_R,RrPE_R,RpPE_R,
-  LPML_z,LPML_r)
-PML_update_velocity_1st_TopRight_Por!(vr,vz,trr,tpp,tzz,trz,vfr,vfz,pf,
-  Rho,Rhof,D1,D2,Flag_vf_zero,nr,nz,dr,dz,dt,
-  Prz_TR,Pzz_TR,PzzPE_TR,
-  Prr_TR,Qrp_TR,Pzr_TR,Qzp_TR,Rr_TR,Rp_TR,Rrz_TR,
-  PrrPE_TR,RrPE_TR,RpPE_TR,
-  LPML_z,LPML_r)
-PML_update_velocity_1st_BottomRight_Por!(vr,vz,trr,tpp,tzz,trz,vfr,vfz,pf,
-   Rho,Rhof,D1,D2,Flag_vf_zero,nr,nz,dr,dz,dt,
-   Prz_BR,Pzz_BR,PzzPE_BR,
-   Prr_BR,Qrp_BR,Pzr_BR,Qzp_BR,Rr_BR,Rp_BR,Rrz_BR,
-   PrrPE_BR,RrPE_BR,RpPE_BR,
-   LPML_z,LPML_r)
+#PML: update velocity
+PML_update_vel!(vr,vz,trr,tpp,tzz,trz,vfr,vfz,pf,
+              Rho,Rhof,D1,D2,Flag_vf_zero,nr,nz,dr,dz,dt,
+              Prz_T,Pzz_T,PzzPE_T,
+              Prz_B,Pzz_B,PzzPE_B,
+              Prr_R,Qrp_R,Pzr_R,Qzp_R,Rr_R,Rp_R,Rrz_R,
+              PrrPE_R,RrPE_R,RpPE_R,
+              Prz_TR,Pzz_TR,PzzPE_TR,
+              Prr_TR,Qrp_TR,Pzr_TR,Qzp_TR,Rr_TR,Rp_TR,Rrz_TR,
+              PrrPE_TR,RrPE_TR,RpPE_TR,
+              Prz_BR,Pzz_BR,PzzPE_BR,
+              Prr_BR,Qrp_BR,Pzr_BR,Qzp_BR,Rr_BR,Rp_BR,Rrz_BR,
+              PrrPE_BR,RrPE_BR,RpPE_BR,
+              LPML_z,LPML_r)
 #println("update vel Left")
 #if(ii==1)
 #   error()
@@ -677,6 +660,13 @@ ApplyBCRight_velocity1D_Por01!(0.0,vr,vz,
 
 #---velocity B.Cs-----
 #Periodic Left Edge
+ApplyBCLeft_vel!(vr,vz,trr,tpp,tzz,trz,vfr,vfz,pf,
+                          Rho,Rhof,D1,D2,Flag_vf_zero,
+                          nr,nz,dr,dz,dt,
+                          Prz_T,Pzz_T,PzzPE_T,
+                          Prz_B,Pzz_B,PzzPE_B,
+                          LPML_z)
+#==
 ApplyBCLeft_velocity_1st_Por!(vr,vz,trr,tpp,tzz,trz,vfr,vfz,pf,
                               Rho,Rhof,D1,D2,Flag_vf_zero,nr,nz,dr,dz,dt,LPML_z)
 ApplyBCLeft_velocity_1st_atPML_Top_Por!(vr,vz,trr,tpp,tzz,trz,vfr,vfz,pf,
@@ -687,7 +677,7 @@ ApplyBCLeft_velocity_1st_atPML_Bottom_Por!(vr,vz,trr,tpp,tzz,trz,vfr,vfz,pf,
     Rho,Rhof,D1,D2,Flag_vf_zero,nr,nz,dr,dz,dt,
     Prz_B,Pzz_B,PzzPE_B,
     LPML_z)
-#
+==#
 
 #---Fluid-PE BC @borehole wall (test): replacing velocity values
 #ir_wall=10
@@ -706,6 +696,16 @@ update_vr_vfr_1st_vertical(vr,trr,tpp,tzz,trz,vfr,pf,
 #ApplyBC_velocity_AcousticMedia!(vfr,vfz,Flag_AC,nr,nz)
 
 #--PML: update memory variables for stress (Rx and Sxx) using velocity at two time steps
+PML_update_memRS!(Rz_T,Srz_T,RzPE_T,
+                           Rz_B,Srz_B,RzPE_B,
+                           Rr_R,Rp_R,Rrz_R,RrPE_R,RpPE_R,
+                           Rr_TR,Rp_TR,Rz_TR,Rrz_TR,Srz_TR,RrPE_TR,RpPE_TR,RzPE_TR,
+                           Rr_BR,Rp_BR,Rz_BR,Rrz_BR,Srz_BR,RrPE_BR,RpPE_BR,RzPE_BR,
+                           memT_vr,memT_vz,memT_vfr,memT_vfz,
+                           memB_vr,memB_vz,memT_vfr,memT_vfz,
+                           memR_vr,memR_vz,memR_vfr,memR_vfz,
+                           vr,vz,vfr,vfz,nr,nz,dr,dz,dt,LPML_z,LPML_r,PML_Wz,PML_Wr,PML_IWr,PML_Wz2,PML_Wr2,PML_IWr2)
+#==
 PML_update_memRS_1st_Top_Por!(Rz_T,Srz_T,RzPE_T,
     memT_vr,memT_vz,memT_vfr,memT_vfz,
     vr,vz,vfr,vfz,nr,nz,dr,dz,dt,LPML_z,LPML_r,PML_Wz,PML_Wz2)
@@ -723,6 +723,7 @@ PML_update_memRS_1st_BottomRight_Por!(Rr_BR,Rp_BR,Rz_BR,Rrz_BR,Srz_BR,RrPE_BR,Rp
     memB_vr,memB_vz,memB_vfr,memB_vfz,
     memR_vr,memR_vz,memR_vfr,memR_vfz,
     vr,vz,vfr,vfz,nr,nz,dr,dz,dt,LPML_z,LPML_r,PML_Wz,PML_Wr,PML_IWr,PML_Wz2,PML_Wr2,PML_IWr2)
+==#
 #--src injection (velocity)
 #srcamp=src_func[ii]
 #srcapply!(vz,src_index,src_dn,srcamp)
@@ -1026,7 +1027,7 @@ Snapshot settings
 ==============================#
 nskip,snapshots_trr,snapshots_vr,snapshots_vz,
 nsnap,itvec_snap=init_snap(nt,nz,nr,100)
-error()
+#error()
 
 #==============================
 Start main FD Loop

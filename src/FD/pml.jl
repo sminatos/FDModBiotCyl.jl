@@ -1,4 +1,102 @@
 
+#------------------------------------------------------------
+# main entry functions for PML calculations
+#------------------------------------------------------------
+#PML: save velocity at previous step
+function PML_save_vel!(memT_vr,memT_vz,memT_vfr,memT_vfz,
+                       memB_vr,memB_vz,memB_vfr,memB_vfz,
+                       memR_vr,memR_vz,memR_vfr,memR_vfz,
+                       vr,vz,vfr,vfz,nr,nz,LPML_z,LPML_r)
+    PML_save_vel_Top_Por!(memT_vr,memT_vz,memT_vfr,memT_vfz,vr,vz,vfr,vfz,nr,nz,LPML_z,LPML_r)
+    PML_save_vel_Bottom_Por!(memB_vr,memB_vz,memB_vfr,memB_vfz,vr,vz,vfr,vfz,nr,nz,LPML_z,LPML_r)
+    PML_save_vel_Right_Por!(memR_vr,memR_vz,memR_vfr,memR_vfz,vr,vz,vfr,vfz,nr,nz,LPML_z,LPML_r)
+end 
+
+#PML: save stress at previous step
+function PML_save_stress!(memT_trr,memT_tpp,memT_tzz,memT_trz,memT_pf,
+                          memB_trr,memB_tpp,memB_tzz,memB_trz,memB_pf,
+                          memR_trr,memR_tpp,memR_tzz,memR_trz,memR_pf,
+                          trr,tpp,tzz,trz,pf,nr,nz,LPML_z,LPML_r)
+
+    PML_save_stress_Top_Por!(memT_trr,memT_tpp,memT_tzz,memT_trz,memT_pf,
+                             trr,tpp,tzz,trz,pf,nr,nz,LPML_z,LPML_r)
+    PML_save_stress_Bottom_Por!(memB_trr,memB_tpp,memB_tzz,memB_trz,memB_pf,
+                                trr,tpp,tzz,trz,pf,nr,nz,LPML_z,LPML_r)
+    PML_save_stress_Right_Por!(memR_trr,memR_tpp,memR_tzz,memR_trz,memR_pf,
+                               trr,tpp,tzz,trz,pf,nr,nz,LPML_z,LPML_r)
+end
+
+#PML: update velocity
+function PML_update_vel!(vr,vz,trr,tpp,tzz,trz,vfr,vfz,pf,
+                       Rho,Rhof,D1,D2,Flag_vf_zero,nr,nz,dr,dz,dt,
+                       Prz_T,Pzz_T,PzzPE_T,
+                       Prz_B,Pzz_B,PzzPE_B,
+                       Prr_R,Qrp_R,Pzr_R,Qzp_R,Rr_R,Rp_R,Rrz_R,
+                       PrrPE_R,RrPE_R,RpPE_R,
+                       Prz_TR,Pzz_TR,PzzPE_TR,
+                       Prr_TR,Qrp_TR,Pzr_TR,Qzp_TR,Rr_TR,Rp_TR,Rrz_TR,
+                       PrrPE_TR,RrPE_TR,RpPE_TR,
+                       Prz_BR,Pzz_BR,PzzPE_BR,
+                       Prr_BR,Qrp_BR,Pzr_BR,Qzp_BR,Rr_BR,Rp_BR,Rrz_BR,
+                       PrrPE_BR,RrPE_BR,RpPE_BR,
+                       LPML_z,LPML_r)
+                       
+    PML_update_velocity_1st_Top_Por!(vr,vz,trr,tpp,tzz,trz,vfr,vfz,pf,
+                                     Rho,Rhof,D1,D2,Flag_vf_zero,nr,nz,dr,dz,dt,Prz_T,Pzz_T,PzzPE_T,LPML_z,LPML_r)
+    PML_update_velocity_1st_Bottom_Por!(vr,vz,trr,tpp,tzz,trz,vfr,vfz,pf,
+                                        Rho,Rhof,D1,D2,Flag_vf_zero,nr,nz,dr,dz,dt,Prz_B,Pzz_B,PzzPE_B,LPML_z,LPML_r)
+    PML_update_velocity_1st_Right_Por!(vr,vz,trr,tpp,tzz,trz,vfr,vfz,pf,
+                                       Rho,Rhof,D1,D2,Flag_vf_zero,nr,nz,dr,dz,dt,
+                                       Prr_R,Qrp_R,Pzr_R,Qzp_R,Rr_R,Rp_R,Rrz_R,
+                                       PrrPE_R,RrPE_R,RpPE_R,
+                                       LPML_z,LPML_r)
+    PML_update_velocity_1st_TopRight_Por!(vr,vz,trr,tpp,tzz,trz,vfr,vfz,pf,
+                                          Rho,Rhof,D1,D2,Flag_vf_zero,nr,nz,dr,dz,dt,
+                                          Prz_TR,Pzz_TR,PzzPE_TR,
+                                          Prr_TR,Qrp_TR,Pzr_TR,Qzp_TR,Rr_TR,Rp_TR,Rrz_TR,
+                                          PrrPE_TR,RrPE_TR,RpPE_TR,
+                                          LPML_z,LPML_r)
+    PML_update_velocity_1st_BottomRight_Por!(vr,vz,trr,tpp,tzz,trz,vfr,vfz,pf,
+                                             Rho,Rhof,D1,D2,Flag_vf_zero,nr,nz,dr,dz,dt,
+                                             Prz_BR,Pzz_BR,PzzPE_BR,
+                                             Prr_BR,Qrp_BR,Pzr_BR,Qzp_BR,Rr_BR,Rp_BR,Rrz_BR,
+                                             PrrPE_BR,RrPE_BR,RpPE_BR,
+                                             LPML_z,LPML_r)
+end
+
+#PML: update memory variables for stress (Rx and Sxx) using velocity at two time steps
+function PML_update_memRS!(Rz_T,Srz_T,RzPE_T,
+                           Rz_B,Srz_B,RzPE_B,
+                           Rr_R,Rp_R,Rrz_R,RrPE_R,RpPE_R,
+                           Rr_TR,Rp_TR,Rz_TR,Rrz_TR,Srz_TR,RrPE_TR,RpPE_TR,RzPE_TR,
+                           Rr_BR,Rp_BR,Rz_BR,Rrz_BR,Srz_BR,RrPE_BR,RpPE_BR,RzPE_BR,
+                           memT_vr,memT_vz,memT_vfr,memT_vfz,
+                           memB_vr,memB_vz,memB_vfr,memB_vfz,
+                           memR_vr,memR_vz,memR_vfr,memR_vfz,
+                           vr,vz,vfr,vfz,nr,nz,dr,dz,dt,LPML_z,LPML_r,PML_Wz,PML_Wr,PML_IWr,PML_Wz2,PML_Wr2,PML_IWr2)
+    
+    PML_update_memRS_1st_Top_Por!(Rz_T,Srz_T,RzPE_T,
+                                  memT_vr,memT_vz,memT_vfr,memT_vfz,
+                                  vr,vz,vfr,vfz,nr,nz,dr,dz,dt,LPML_z,LPML_r,PML_Wz,PML_Wz2)
+    PML_update_memRS_1st_Bottom_Por!(Rz_B,Srz_B,RzPE_B,
+                                     memB_vr,memB_vz,memB_vfr,memB_vfz,
+                                     vr,vz,vfr,vfz,nr,nz,dr,dz,dt,LPML_z,LPML_r,PML_Wz,PML_Wz2)
+    PML_update_memRS_1st_Right_Por!(Rr_R,Rp_R,Rrz_R,RrPE_R,RpPE_R,
+                                    memR_vr,memR_vz,memR_vfr,memR_vfz,
+                                    vr,vz,vfr,vfz,nr,nz,dr,dz,dt,LPML_z,LPML_r,PML_Wr,PML_IWr,PML_Wr2,PML_IWr2)
+    PML_update_memRS_1st_TopRight_Por!(Rr_TR,Rp_TR,Rz_TR,Rrz_TR,Srz_TR,RrPE_TR,RpPE_TR,RzPE_TR,
+                                       memT_vr,memT_vz,memT_vfr,memT_vfz,
+                                       memR_vr,memR_vz,memR_vfr,memR_vfz,
+                                       vr,vz,vfr,vfz,nr,nz,dr,dz,dt,LPML_z,LPML_r,PML_Wz,PML_Wr,PML_IWr,PML_Wz2,PML_Wr2,PML_IWr2)
+    PML_update_memRS_1st_BottomRight_Por!(Rr_BR,Rp_BR,Rz_BR,Rrz_BR,Srz_BR,RrPE_BR,RpPE_BR,RzPE_BR,
+                                          memB_vr,memB_vz,memB_vfr,memB_vfz,
+                                          memR_vr,memR_vz,memR_vfr,memR_vfz,
+                                          vr,vz,vfr,vfz,nr,nz,dr,dz,dt,LPML_z,LPML_r,PML_Wz,PML_Wr,PML_IWr,PML_Wz2,PML_Wr2,PML_IWr2)
+end
+
+
+
+
 
 #------------------------------
 # initializing PML variables
