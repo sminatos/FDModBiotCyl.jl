@@ -28,6 +28,8 @@ export  init_fields_Por,
         get_snapshots_t!,
       #---receivers (receivers.jl)---
         init_receiver,
+        init_receiver_hydrophone,
+        init_receiver_geophone,        
         getRecData_from_index!,
       #---other functions (misc.jl)---------
         mycopy_mat,
