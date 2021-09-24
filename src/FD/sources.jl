@@ -37,3 +37,32 @@ function myricker2(tvec,f0,delay,derivative_number)
 
     return y
 end
+
+
+#------------------------------
+# converting src geometry to
+# index numbers of a pressure grid
+#------------------------------
+function get_srcindex_monopole(srcgeom,dr,dz)
+    #src index and amplitudes
+    #--point input
+    izsrc_ref=Int(ceil(srcgeom[1,1]/dz)+1)
+    irsrc_ref=Int(ceil(srcgeom[1,2]/dr)+1)
+    src_index=[izsrc_ref;irsrc_ref]
+    src_dn=[1.]
+    return src_index,src_dn
+end
+
+#------------------------------
+# applying src term into grids
+#------------------------------
+function srcapply!(paramarray,src_index,src_dn,srcamp)
+    #--e.g. fz src: vz=vz+fz (same form as vz update, thus fz is as-is and not time-derivatives)
+    #--input array can be vx,vz etc
+    for isrcind=1:length(src_dn)
+       isz=src_index[1,isrcind]
+       isr=src_index[2,isrcind]
+       paramarray[isz,isr]=paramarray[isz,isr]+srcamp*src_dn[isrcind]
+    end
+end
+

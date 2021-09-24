@@ -29,14 +29,16 @@ export  init_fields_Por,
       #---receivers (receivers.jl)---
         init_receiver,
         init_receiver_hydrophone,
-        init_receiver_geophone,        
+        init_receiver_geophone,
         getRecData_from_index!,
       #---other functions (misc.jl)---------
         mycopy_mat,
         get_Flag_vf_zero,
         check_stability01,
       #---sources (sources.jl)-----
-        myricker2
+        myricker2,
+        srcapply!,
+        get_srcindex_monopole
 
 
   include("./fdmain.jl")

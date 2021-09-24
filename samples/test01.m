@@ -12,6 +12,9 @@ hold on;plot(now.rec_vz(:,400),'b.');
 
 
 %2L model check
-org=load("~/work/Kiguchi_Nojima_DSI/VSP_Tubewave/Modeling/White_model/matome_Three_Mechanism/Elastic_Layer_pCylFD/calibrate/out_2L.mat");
+org=load("~/work/Kiguchi_Nojima_DSI/VSP_Tubewave/Modeling/White_model/matome_Three_Mechanism/Elastic_Layer_pCylFD/out_2L.mat");
 now=load("./out_2L.mat");
 
+figure;plot(org.rec_tii(:,200),'r-');
+hold on;plot(now.rec_tii(:,200),'b.');
+grid on;
