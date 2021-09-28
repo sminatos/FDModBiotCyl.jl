@@ -22,8 +22,8 @@ end
 #-----------------------------
 # updating velocity field
 #-----------------------------
-function update_vr(___vr_now,___trr_f,___trr_b,___trz_f,___trz_b,___trr_av,___tpp_av,
-    ___trp_now,___dz,___dr,___dt,___r_now,___Rho,___m)
+function update_vr(vr_now,trr_f,trr_b,trz_f,trz_b,trr_av,tpp_av,
+    trp_now,dz,dr,dt,r_now,Rho,m)
     #first-order difference
     #X_now: current time, current position [k,j]
     #X_f: foward position (trr[k,j],trz[k+1,j])
@@ -32,14 +32,15 @@ function update_vr(___vr_now,___trr_f,___trr_b,___trz_f,___trz_b,___trr_av,___tp
     #trp is at the same location
     #r_now: current radial position @vr
     #m: order (0: monopole, 1:dipole)
-    return ___vr_now+___dt/___Rho*(
-                +(___trr_f-___trr_b)/___dr #drtrr
-                +(___trr_av-___tpp_av+___m*___trp_now)/(___r_now) #trr/r-tpp/r+m*trp/r
-                +(___trz_f-___trz_b)/___dz #dztrz
+    return vr_now+dt/Rho*(
+                +(trr_f-trr_b)/dr #drtrr
+                +(trr_av-tpp_av+m*trp_now)/(r_now) #trr/r-tpp/r+m*trp/r
+                +(trz_f-trz_b)/dz #dztrz
                 )
 end
-function update_vz(___vz_now,___trz_f,___trz_b,___tzz_f,___tzz_b,___trz_av,
-    ___tpz_now,___dz,___dr,___dt,___r_now,___Rho,___m)
+
+function update_vz(vz_now,trz_f,trz_b,tzz_f,tzz_b,trz_av,
+    tpz_now,dz,dr,dt,r_now,Rho,m)
     #first-order difference
     #X_now: current time, current position [k,j]
     #X_f: foward position (trz[k,j+1],tzz[k,j])
@@ -48,10 +49,10 @@ function update_vz(___vz_now,___trz_f,___trz_b,___tzz_f,___tzz_b,___trz_av,
     #tpz is at the same location
     #r_now: current radial position @vz
     #m: order (0: monopole, 1:dipole)
-    return ___vz_now+___dt/___Rho*(
-              +(___trz_f-___trz_b)/___dr #drtrz
-              +(___trz_av+___m*___tpz_now)/(___r_now) #trz/r+m*tpz/r
-              +(___tzz_f-___tzz_b)/___dz #dztzz
+    return vz_now+dt/Rho*(
+              +(trz_f-trz_b)/dr #drtrz
+              +(trz_av+m*tpz_now)/(r_now) #trz/r+m*tpz/r
+              +(tzz_f-tzz_b)/dz #dztzz
               )
 end
 
@@ -297,8 +298,8 @@ function update_tzz_1st_Por(tzz_now,vr_f,vr_b,vz_f,vz_b,vr_av,
                       )
 end
 
-function update_trz(___trz_now,___vr_f,___vr_b,___vz_f,___vz_b,
-    ___dz,___dr,___dt,___r_now,___mu,___m)
+function update_trz(trz_now,vr_f,vr_b,vz_f,vz_b,
+    dz,dr,dt,r_now,mu,m)
     #first-order difference
     #X_now: current time, current position [k,j]
     #X_f: foward position (vr[k,j],vz[k,j])
@@ -307,9 +308,9 @@ function update_trz(___trz_now,___vr_f,___vr_b,___vz_f,___vz_b,
     #-- is at the same location
     #r_now: current radial position @trz
     #m: order (0: monopole, 1:dipole)
-    return ___trz_now+___dt*(
-               +___mu*(___vr_f-___vr_b)/___dz #mu*dzvr
-               +___mu*(___vz_f-___vz_b)/___dr #mu*drvz
+    return trz_now+dt*(
+               +mu*(vr_f-vr_b)/dz #mu*dzvr
+               +mu*(vz_f-vz_b)/dr #mu*drvz
                )
 end
 
@@ -508,8 +509,8 @@ for k=LPML_z+1:nz-LPML_z #caution !
         dztzz=dztzz/dz
 
         #Experimental (Randall type)
-        trz_f1,trz_b1=trz[k,j],-trz[k,j] #symtr (assume Randall's trz=0. not Mittet sym)
-
+        trz_f1,trz_b1=trz[k,j],-trz[k,j] #symtr (assume Randall's trz=0. not Mittet sym. this was nessesary.)
+    
         drtrz=(trz_f1-trz_b1)
         drtrz=drtrz/dr
 
@@ -606,7 +607,7 @@ for k=LPML_z+1:nz-LPML_z
         M=Mmat[k,j] #be careful
 
         #Special treatment @r=0
-        #trr=tzz=tpp=lambda*(2*dr/dr+dvz/dz) FLUID
+        #l'Hopital's rule
 
         drvr=(vr_f1-vr_b1)
         drvr=drvr/dr
@@ -639,6 +640,24 @@ for k=LPML_z+1:nz-LPML_z
                             -M*(2.0*drvfr+dzvfz)
                             )
 
+    #==tmptmptmptmp
+        trr[k,j]=trr[k,j]+dt*(
+                             +(H-2.0*G)*(0+dzvz)
+                             +H*drvr
+                             +C*(2.0*drvfr+dzvfz)
+                             )
+        tpp[k,j]=tpp[k,j]+dt*(
+                            +(H-2.0*G)*(drvr+dzvz)
+                            +H*0
+                            +C*(2.0*drvfr+dzvfz)
+                            )
+        tzz[k,j]=tzz[k,j]+dt*(
+                            +(H-2.0*G)*drvr
+                            +H*dzvz
+                            +C*(2.0*drvfr+dzvfz)
+                            )
+    ==#
+    
         #---trp and trz not on left edge!
         r_now=(j-1)*dr+dr/2.0 #for trp,trz Mittet
         trz_now=trz[k,j]

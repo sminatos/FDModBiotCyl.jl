@@ -1,0 +1,36 @@
+TUD0035251:test01 mminato$ gfortran -o bessrun bessrun.f bfcns.f 
+
+
+---
+nt=512-->1024
+
+grep 512 *.f
+source.f:      complex source(512),ci,temp,compn,wo,almio2
+source.f:      dimension w(512)
+source2.f:      complex source(512),ci,cn,wo,almio2
+source2.f:      dimension w(512)
+trace_time.f:      complex ci,tshft,source(512),spect(512),gfcn(10,512),cn,wo,
+trace_time.f:     *  a1prme(4096),scale,primex(512)
+trace_time.f:      dimension wr(512),yorig(512),y(512),fsave(256),
+trace_time.f:     *          gorig(512),znorm(10)
+trace_time.f:      data nt/512/,nz/4096/
+
+Everything above 512-->1024
+
+Then recompile:
+ gfortran -o bholemod -fdec-static tracemain_table.class.f trace_time.f xkintgrl.f source.f fourt.f bessl_table3.f tracegreen_table.f dmatrx.f gmatrx.f ematrx.f xeqy.f cmatmult.f analinv.f 
+
+--> looks OK.
+
+---
+nz=4096-->65536
+
+grep 4096 *.f
+trace_time.f:     *  a1prme(4096),scale,primex(1024)
+trace_time.f:      data nt/1024/,nz/4096/
+tracegreen_table.f:      complex k,w,f1,f2,temp,xkernal(4096),
+tracegreen_table.f:      data kernlmax/4096/
+
+Everything above 4096-->65536
+
+--> looks OK.

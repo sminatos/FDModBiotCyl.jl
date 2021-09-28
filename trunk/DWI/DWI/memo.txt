@@ -1,0 +1,43 @@
+---in code folder-----
+1. emulating bessrun_lnk.sh
+gfortran -o bessrun bessrun.f bfcns.f 
+
+2. emulating bholemod_lnk.sh
+
+gfortran -o bholemod tracemain_table.class.f trace_time.f xkintgrl.f source.f fourt.f bessl_table3.f tracegreen_table.f dmatrx.f gmatrx.f ematrx.f xeqy.f cmatmult.f analinv.f 
+
+--> error: label has non-numeric in tracemain_table.class.f (TEST and DAN) --> is this label or comment?
+--> modified tracemain_tables.class.f (COMMENT OUT, TEST and DAN)
+
+--> Error: STATIC at (1) is a DEC extension, enable with '-fdec-static' (dmatrx.f)
+--> put -fdec-static option
+
+--> warnings, but looks ok.
+
+3. Go to working folder! (containing bessrun.sh, )
+----------------
+----in working folder---
+
+1. bessrun01.sh (caution encoding. to change C-x RET f, utf-8)
+--> .dan files were created!
+
+2. check bhole.input, and run with bholemod < bhole.input
+--> test.8ht was created!
+
+
+
+
+------
+tracemain_table.class.f (main routine)
+trace_tim.f
+c		Trace header for 8 header file by K. Hayashi  Jan. 21 1999
+
+		write (12,*) ipts
+		write (12,*) int((z+float(ipts-1)*dzsource)*100.)
+		write (12,*) 0
+		write (12,*) 1
+		write (12,*) 1
+		write (12,*) 0.
+		write (12,*) (tlast-t0)/float(nt)*1000.
+		write (12,*) nt
+
