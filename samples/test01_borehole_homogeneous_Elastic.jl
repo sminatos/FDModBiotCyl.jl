@@ -16,13 +16,6 @@
 # The field parameters located at r=0 are tzz,trr,tpp,pf,vz,vfz.
 # The field parameters located at z=0 are tzz,trr,tpp,pf,vr,vfr.
 #
-#--Redifining material parameters for Biot poroelasticity--
-# H, C, M, mu, rhof, rho, k, eta, phi : See Ou and Wang (2019, doi: 10.1093/gji/ggz144
-# will be dependent on --> D1(=0 when k(w)=k0), D2, rho, rhof, M, C, H, mu
-#
-#--Additional field variables for Biot poroelasticitiy--
-# pf, vwr, vwz : fluid pressure, vr and vz
-
 #--
 # Threads.nthreads() displays number of available threads
 # if ==1, start julia with JULIA_NUM_THREADS=4 julia
@@ -45,7 +38,6 @@ using DelimitedFiles
 using Printf
 #
 using FDModBiotCyl
-using Dierckx
 
 #--Suppressing graphics
 #ENV["GKSwstype"]="nul"
@@ -77,7 +69,7 @@ function drawmodel(Field_Var,nz,dz,nr,dr,LPML_r,LPML_z)
 end
 
 #=========================
-Creating homogeneous model
+Creating two layer model
 =========================#
 function makemodel_homogeneous_Elastic()
 #Nessesary input matrices to main loop function are:
@@ -90,13 +82,13 @@ function makemodel_homogeneous_Elastic()
 #Other input parameters to main loop function are:
 #ir_wall: grid number in r direction where a borehole wall starts (single value)
 #
-# This function creates above input paramers assuming a
+# This function creates above input paramers assuming a borehole embedded in
 # homogeneous elastic media
 
 #Model size
-   nr=251 #samples
-   nz=351 #samples
-   dr=0.5 #meter
+   nr=51 #samples
+   nz=301 #samples
+   dr=0.1 #meter
    dz=0.5 #meter
 
 
@@ -129,13 +121,13 @@ function makemodel_homogeneous_Elastic()
    Rhof[:,:]=ones(nz,nr)*1000
    Eta[:,:]=ones(nz,nr)*1.0*10^(-3) #water 1E-3 Pa.s
 
-#==
    #========================================
    Inclusion of a borehole (acoustic media)
    ========================================#
    Flag_AC=zeros(nz,nr)
    #Borehole wall (homogeneous radius)
-   ir_wall=Int(round(0.1/dr))
+   #ir_wall=Int(round(0.1/dr))
+   ir_wall=4
 
    for iz=1:nz
        Flag_AC[iz,1:ir_wall]=ones(ir_wall)
@@ -146,31 +138,56 @@ function makemodel_homogeneous_Elastic()
        Ks[iz,1:ir_wall]=ones(ir_wall)*Kf[1,1] #
        Eta[iz,1:ir_wall]=ones(ir_wall)*0.0 #eta=0 (-> D2=0, Ou's)
    end
-==#
-   Flag_AC=zeros(nz,nr)
-   ir_wall=0
 
    #==========================
    Homogeneous Elastic model
    ==========================#
    Flag_E=zeros(nz,nr)
-   Vp1_elastic=2500.0 #Or, Specify K_elastic
-   Vs1_elastic=2000.0
-   Rho1_elastic=2500.0
+   Vp1_elastic=5800.0 #Or, Specify K_elastic
+   Vs1_elastic=3200.0
+   Rho1_elastic=8000.0
 
-   G_elastic=Vs1_elastic^2*Rho1_elastic
-   K_elastic=Vp1_elastic^2*Rho1_elastic-4/3*G_elastic #Activate here if you have specified Vp_elastic
+#
+   for iz=1:nz #Elastic media
 
-   Flag_E=ones(nz,nr)
-   Rho=Rho1_elastic*ones(nz,nr) #Rho=Rho_elastic
-#       Rhof[iz,ir_wall+1:end]=ones(nr-ir_wall)*Rho1_elastic #Rhof=Rho_elastic
-   G=ones(nz,nr)*G_elastic #G=Gs (Ou's)
-   #--
-#   Phi[iz,ir_wall+1:end]=ones(nr-ir_wall)*0.0 #Phi=0
-   Km=ones(nz,nr)*K_elastic #Km
-   Ks=ones(nz,nr)*K_elastic #Ks=Km (-> M=Inf, Ou's)
-   #--
-#   Kappa0[iz,ir_wall+1:end]=ones(nr-ir_wall)*0.0 #k0=0 (-> D1=D2=Inf, Ou's)
+       G_elastic=Vs1_elastic^2*Rho1_elastic
+       K_elastic=Vp1_elastic^2*Rho1_elastic-4/3*G_elastic #Activate here if you have specified Vp_elastic
+
+       Flag_E[iz,ir_wall+1:end]=ones(nr-ir_wall)
+       Rho[iz,ir_wall+1:end]=ones(nr-ir_wall)*Rho1_elastic #Rho=Rho_elastic
+       Rhof[iz,ir_wall+1:end]=ones(nr-ir_wall)*Rho1_elastic #Rhof=Rho_elastic
+       G[iz,ir_wall+1:end]=ones(nr-ir_wall)*G_elastic #G=Gs (Ou's)
+       #--
+       Phi[iz,ir_wall+1:end]=ones(nr-ir_wall)*0.0 #Phi=0
+       Km[iz,ir_wall+1:end]=ones(nr-ir_wall)*K_elastic #Km
+       Ks[iz,ir_wall+1:end]=ones(nr-ir_wall)*K_elastic #Ks=Km (-> M=Inf, Ou's)
+       #--
+       Kappa0[iz,ir_wall+1:end]=ones(nr-ir_wall)*0.0 #k0=0 (-> D1=D2=Inf, Ou's)
+   end
+
+   #inclusion of blockage in the borehole
+   Vp2_elastic=4500.0 #Or, Specify K_elastic
+   Vs2_elastic=2500.0
+   Rho2_elastic=2000.0
+   for iz=201:202 #Elastic media
+
+       G_elastic=Vs2_elastic^2*Rho2_elastic
+       K_elastic=Vp2_elastic^2*Rho2_elastic-4/3*G_elastic #Activate here if you have specified Vp_elastic
+
+       Flag_E[iz,1:ir_wall]=ones(ir_wall)
+       Rho[iz,1:ir_wall]=ones(ir_wall)*Rho2_elastic #Rho=Rho_elastic
+       Rhof[iz,1:ir_wall]=ones(ir_wall)*Rho2_elastic #Rhof=Rho_elastic
+       G[iz,1:ir_wall]=ones(ir_wall)*G_elastic #G=Gs (Ou's)
+       #--
+       Phi[iz,1:ir_wall]=ones(ir_wall)*0.0 #Phi=0
+       Km[iz,1:ir_wall]=ones(ir_wall)*K_elastic #Km
+       Ks[iz,1:ir_wall]=ones(ir_wall)*K_elastic #Ks=Km (-> M=Inf, Ou's)
+       #--
+       Kappa0[iz,1:ir_wall]=ones(ir_wall)*0.0 #k0=0 (-> D1=D2=Inf, Ou's)
+       #
+       Flag_AC[iz,1:ir_wall]=ones(ir_wall)*0.0
+   end
+   #
 
    #=====================================================
    Converting Sidler's poroelastic parameters into Ou's
@@ -222,61 +239,6 @@ end
 
 
 
-#=========================
-Green's function
-=========================#
-function Green_Aki(vp,vs,rho,tvec,src_func,srcgeom,recgeom)
-#Aki and Rechards eq 4.23
-#vp=2500
-#vs=2000
-#rho=2500
-
-tmp_R=recgeom-repeat(srcgeom,nrec,1) #(z,r)
-R=map(x->sqrt(x),sum(tmp_R.^2,dims=2))
-gammax=tmp_R[:,2]./R
-gammaz=tmp_R[:,1]./R
-src_spl=Spline1D(tvec[:],src_func[:],k=1)
-    #================
-          Gzz
-    ================#
-     amp_p=1/(4pi*rho*vp^2)*gammaz.*gammaz./R
-     amp_s=-1/(4pi*rho*vs^2)*(gammaz.*gammaz-ones(size(gammax)))./R
-     Gzz_far=zeros(nt,nrec)
-     for irec=1:nrec
-        tmp=amp_p[irec]*src_spl(tvec[:]-R[irec]/vp*ones(size(tvec)))+
-            amp_s[irec]*src_spl(tvec[:]-R[irec]/vs*ones(size(tvec)))
-        Gzz_far[:,irec]=tmp #far-field terms only (displacement-body force)
-     end
-     #inclusion of a near-field term
-     Gzz_near=zeros(nt,nrec)
-     amp_nf=1/(4pi*rho)*(3*gammaz.*gammaz-ones(size(gammax)))./(R.^3)
-
-     for irec=1:nrec
-        tau=range(R[irec]/vp,R[irec]/vs,length=nt) # range object (no memory allocation)
-        tau=collect(tau) # a vector
-        dt_tau=tau[2]-tau[1]
-        tmp_nf=zeros(nt,1)
-        for it=1:nt
-           src_intp=src_spl(tvec[it]*ones(size(tau))-tau[:])
-           tmp_nf[it]=sum(src_intp.*tau)*dt_tau
-        end
-        Gzz_near[:,irec]=tmp_nf*amp_nf[irec]
-     end
-
-     Gzz=Gzz_far+Gzz_near
-
-#converting displacement to particle velocity
-  tmp=(Gzz[2:end,:]-Gzz[1:end-1,:])/dt
-  vz_an=zeros(nt,nrec)
-  for irec=1:nrec
-    tmp_spl=Spline1D(tvec[1:end-1]+dt/2*ones(size(tmp[:,irec])),tmp[:,irec],k=1)
-    vz_an[:,irec]=tmp_spl(tvec)
-  end
-
-  return vz_an
-end
-
-
 
 #----MAIN loop function with src----
 function main_loop!(nr,nz,dr,dz,Rho,Rhof,M,C,H,G,D1,D2,dt,nt,T,
@@ -285,7 +247,7 @@ function main_loop!(nr,nz,dr,dz,Rho,Rhof,M,C,H,G,D1,D2,dt,nt,T,
    ir_wall,
    src_index,src_dn,
    Flag_AC,Flag_E,
-   nrec,rec_vr,rec_vz,index_allrec_vr,index_allrec_vz,
+   nrec,index_allrec_tii,rec_tii,
    LPML_r,LPML_z,PML_Wr,PML_Wz,PML_IWr,PML_Wr2,PML_Wz2,PML_IWr2,
    snapshots_vr,snapshots_vz,snapshots_trr,nsnap,itvec_snap,nskip)
 
@@ -316,16 +278,16 @@ vfz_old=zeros(nz,nr)
 
 
 # Making sure RightBC for stress (zero values are trp and trz)
-#ApplyBCRight_stress!(vr,vz, #Use with flag_zero=1 (see ApplyBCRight_stress1D01)
-#    trz,
-#    G,nr,nz,dr,dz,dt)
+ApplyBCRight_stress!(vr,vz, #Use with flag_zero=1 (see ApplyBCRight_stress1D01)
+    trz,
+    G,nr,nz,dr,dz,dt)
 
 #error()
 @showprogress for ii=1:nt
-#@showprogress for ii=1:21
+#@showprogress for ii=1:201
 #for ii=1:1
 
-#@show Pzz_T[1,10],Srz_T[1,10]
+
 
 #----Time at (ii-1)*dt---(updating velocities)-----
 
@@ -401,8 +363,8 @@ PML_update_memRS!(Rz_T,Srz_T,RzPE_T,
                   vr,vz,vfr,vfz,nr,nz,dr,dz,dt,LPML_z,LPML_r,PML_Wz,PML_Wr,PML_IWr,PML_Wz2,PML_Wr2,PML_IWr2)
 
 #--src injection (velocity)
-srcamp=src_func[ii]
-srcapply!(vz,src_index,src_dn,srcamp)
+#srcamp=src_func[ii]
+#srcapply!(vz,src_index,src_dn,srcamp)
 #srcapply!(vr,src_index,src_dn,srcamp)
 
 #----Time at (ii-1)*dt+dt/2----(updating stress)---
@@ -447,10 +409,10 @@ ApplyBCLeft_stress!(vr,vz,trr,tpp,tzz,trz,vfr,vfz,pf,
 #return
 
 #--src injection (stress:monopole src)
-#srcamp=-src_func[ii]
-#srcapply!(tzz,src_index,src_dn,srcamp)
-#srcapply!(trr,src_index,src_dn,srcamp)
-#srcapply!(tpp,src_index,src_dn,srcamp)
+srcamp=-src_func[ii]
+srcapply!(tzz,src_index,src_dn,srcamp)
+srcapply!(trr,src_index,src_dn,srcamp)
+srcapply!(tpp,src_index,src_dn,srcamp)
 
 
 #---Additional BC when Flag_Acoustic/Flag_Elastic
@@ -473,9 +435,9 @@ PML_update_memPQ!(Prz_T,Pzz_T,PzzPE_T,
 
 #println("receiver")
 #Receiver field (extraction)
-getRecData_from_index!(vr,rec_vr,index_allrec_vr,nrec,ii)
-getRecData_from_index!(vz,rec_vz,index_allrec_vz,nrec,ii)
-#getRecData_from_index!(trr,rec_tii,index_allrec_tii,nrec,ii)
+#getRecData_from_index!(vr,rec_vr,index_allrec_vr,nrec,ii)
+#getRecData_from_index!(vz,rec_vz,index_allrec_vz,nrec,ii)
+getRecData_from_index!(trr,rec_tii,index_allrec_tii,nrec,ii)
 
 
 
@@ -511,15 +473,15 @@ const dt=0.125E-5
 const nt=16001
 const T=(nt-1)*dt
 ==#
-dt=1E-4
-nt=1001
+dt=1E-5
+nt=6001
 T=(nt-1)*dt
 tvec=range(0.0,T,length=nt) # range object (no memory allocation)
 tvec=collect(tvec) # a vector
 
 #PML thickness in samples
-LPML_r=20
-LPML_z=20
+LPML_r=30
+LPML_z=30
 
 #======================
 Creating model
@@ -538,7 +500,7 @@ check_stability01(dt,dz,Vmax,0)
 #======================
 Creating src wavelet
 ======================#
-f0=100 #src Freq
+f0=50 #src Freq
 delay=1/f0*1.0
 #src_func=myricker2(tvec,f0,delay,2) #when using 2nd derivative Gaussian (good for DWI)
 src_func=myricker2(tvec,f0,delay,1) #when using 1st derivative Gaussian (Randall?)
@@ -554,10 +516,10 @@ println("Source signature figure saved in ",tmpfilename_src)
 Point src geometry
 ================================#
 srcgeom=zeros(1,2) #(z,r)
+#srcgeom[1,1]=(nz-1)*dz/3 #z meter
 srcgeom[1,1]=(nz-1)*dz/2 #z meter
-srcgeom[1,2]=0*dr #r meter
+srcgeom[1,2]=1*dr #r meter
 src_index,src_dn=get_srcindex_monopole(srcgeom,dr,dz)
-
 
 #error()
 #==============================
@@ -578,9 +540,9 @@ nrec=nz
 recgeom=zeros(nrec,2) #(z,r)
 for irec=1:nrec
    recgeom[irec,1]=dz*(irec-1)
-   recgeom[irec,2]=25.0
+   recgeom[irec,2]=0.0
 end
-rec_vr,rec_vz,index_allrec_vr,index_allrec_vz=init_receiver_geophone(recgeom,nrec,dr,dz,nr,nz,nt)
+rec_tii,index_allrec_tii=init_receiver_hydrophone(recgeom,nrec,dr,dz,nr,nz,nt)
 
 
 
@@ -601,7 +563,7 @@ main_loop!(nr,nz,dr,dz,Rho,Rhof,M,C,H,G,D1,D2,dt,nt,T,
    ir_wall,
    src_index,src_dn,
    Flag_AC,Flag_E,
-   nrec,rec_vr,rec_vz,index_allrec_vr,index_allrec_vz,
+   nrec,index_allrec_tii,rec_tii,
    LPML_r,LPML_z,PML_Wr,PML_Wz,PML_IWr,PML_Wr2,PML_Wz2,PML_IWr2,
    snapshots_vr,snapshots_vz,snapshots_trr,nsnap,itvec_snap,nskip)
 
@@ -609,24 +571,9 @@ main_loop!(nr,nz,dr,dz,Rho,Rhof,M,C,H,G,D1,D2,dt,nt,T,
 CPUtoc()
 println("elapsed real time: ", round(time() - start;digits=3)," seconds")
 
-#error("Stopped w/o problem.")
+error("Stopped w/o problem.")
 
 
-
-#Check
-rec_vz_Aki=Green_Aki(2500,2000,2500,tvec,src_func,srcgeom,recgeom)
-rec_vz_Aki=rec_vz_Aki/maximum(rec_vz_Aki)
-rec_vz_norm=rec_vz/maximum(rec_vz)
-plt1=heatmap(recgeom[:,1],tvec[:],rec_vz_norm,xlabel="Z (m)",ylabel="time (s)",title="FD")
-plt2=heatmap(recgeom[:,1],tvec[:],rec_vz_Aki,xlabel="Z (m)",ylabel="time (s)",title="Theory")
-plt3=plot(tvec[:],rec_vz_norm[:,151],xlabel="time (s)",label="FD")
-plot!(tvec[:],rec_vz_Aki[:,151],xlabel="time (s)",label="Theory")
-display(plot(plt1,plt2,plt3,layout=(3,1)))
-
-tol=0.05
-sqrt(sum((rec_vz_norm[:,151] - rec_vz_Aki[:,151]) .^ 2)) / sqrt(sum(rec_vz_norm[:,151] .^ 2)) < tol
-
-error()
 
    println("Model drawing...")
    zvec=[0:dz:(nz-1)*dz]
@@ -675,5 +622,6 @@ matwrite(tmp_filename_full, Dict(
 #"snapshots_trr"=>snapshots_trr,
 #"snapshots_pf"=>snapshots_trr,
 #"snapshots_vr"=>snapshots_vr,
+"H"=>H,
 "snapshots_vz"=>snapshots_vz,
 "itvec_snap"=>itvec_snap); compress = true)

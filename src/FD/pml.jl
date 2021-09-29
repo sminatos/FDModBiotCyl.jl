@@ -1112,9 +1112,12 @@ function PML_update_stress_1st_Top_Por!(vr,vz,trr,tpp,tzz,trz,vfr,vfz,pf,
              if (Gmat[k,j]*Gmat[k,j+1]*Gmat[k+1,j]*Gmat[k+1,j+1]==0.0)
                   G_av=0.0
              else
-                 gj1=2.0*Gmat[k,j]*Gmat[k+1,j]/(Gmat[k,j]+Gmat[k+1,j])
-                 gj2=2.0*Gmat[k,j+1]*Gmat[k+1,j+1]/(Gmat[k,j+1]+Gmat[k+1,j+1])
-                 G_av=2.0*gj1*gj2/(gj1+gj2)
+#                 gj1=2.0*Gmat[k,j]*Gmat[k+1,j]/(Gmat[k,j]+Gmat[k+1,j])
+#                 gj2=2.0*Gmat[k,j+1]*Gmat[k+1,j+1]/(Gmat[k,j+1]+Gmat[k+1,j+1])
+#                 G_av=2.0*gj1*gj2/(gj1+gj2)
+                 #Guan
+                 G_av=1/4*(1/Gmat[k,j]+1/Gmat[k+1,j]+1/Gmat[k,j+1]+1/Gmat[k+1,j+1])
+                 G_av=1/G_av
              end
 
              vr_f1,vr_b1=vr[k+1,j],vr[k,j]
@@ -1215,9 +1218,12 @@ function PML_update_stress_1st_Bottom_Por!(vr,vz,trr,tpp,tzz,trz,vfr,vfz,pf,
                  if (Gmat[k,j]*Gmat[k,j+1]*Gmat[k+1,j]*Gmat[k+1,j+1]==0.0)
                      G_av=0.0
                  else
-                     gj1=2.0*Gmat[k,j]*Gmat[k+1,j]/(Gmat[k,j]+Gmat[k+1,j])
-                     gj2=2.0*Gmat[k,j+1]*Gmat[k+1,j+1]/(Gmat[k,j+1]+Gmat[k+1,j+1])
-                     G_av=2.0*gj1*gj2/(gj1+gj2)
+#                     gj1=2.0*Gmat[k,j]*Gmat[k+1,j]/(Gmat[k,j]+Gmat[k+1,j])
+#                     gj2=2.0*Gmat[k,j+1]*Gmat[k+1,j+1]/(Gmat[k,j+1]+Gmat[k+1,j+1])
+#                     G_av=2.0*gj1*gj2/(gj1+gj2)
+                     #Guan
+                     G_av=1/4*(1/Gmat[k,j]+1/Gmat[k+1,j]+1/Gmat[k,j+1]+1/Gmat[k+1,j+1])
+                     G_av=1/G_av
                  end
 
                  vr_f1,vr_b1=vr[k+1,j],vr[k,j]
@@ -1319,9 +1325,12 @@ function PML_update_stress_1st_Right_Por!(vr,vz,trr,tpp,tzz,trz,vfr,vfz,pf,
                  if (Gmat[k,j]*Gmat[k,j+1]*Gmat[k+1,j]*Gmat[k+1,j+1]==0.0)
                       G_av=0.0
                  else
-                     gj1=2.0*Gmat[k,j]*Gmat[k+1,j]/(Gmat[k,j]+Gmat[k+1,j])
-                     gj2=2.0*Gmat[k,j+1]*Gmat[k+1,j+1]/(Gmat[k,j+1]+Gmat[k+1,j+1])
-                     G_av=2.0*gj1*gj2/(gj1+gj2)
+#                     gj1=2.0*Gmat[k,j]*Gmat[k+1,j]/(Gmat[k,j]+Gmat[k+1,j])
+#                     gj2=2.0*Gmat[k,j+1]*Gmat[k+1,j+1]/(Gmat[k,j+1]+Gmat[k+1,j+1])
+#                     G_av=2.0*gj1*gj2/(gj1+gj2)
+                     #Guan
+                     G_av=1/4*(1/Gmat[k,j]+1/Gmat[k+1,j]+1/Gmat[k,j+1]+1/Gmat[k+1,j+1])
+                     G_av=1/G_av
                  end
         #         println(mu_av)
                  #---End special averaging---
@@ -1442,9 +1451,12 @@ function PML_update_stress_1st_TopRight_Por!(vr,vz,trr,tpp,tzz,trz,vfr,vfz,pf,
                  if (Gmat[k,j]*Gmat[k,j+1]*Gmat[k+1,j]*Gmat[k+1,j+1]==0.0)
                       G_av=0.0
                  else
-                     gj1=2.0*Gmat[k,j]*Gmat[k+1,j]/(Gmat[k,j]+Gmat[k+1,j])
-                     gj2=2.0*Gmat[k,j+1]*Gmat[k+1,j+1]/(Gmat[k,j+1]+Gmat[k+1,j+1])
-                     G_av=2.0*gj1*gj2/(gj1+gj2)
+#                     gj1=2.0*Gmat[k,j]*Gmat[k+1,j]/(Gmat[k,j]+Gmat[k+1,j])
+#                     gj2=2.0*Gmat[k,j+1]*Gmat[k+1,j+1]/(Gmat[k,j+1]+Gmat[k+1,j+1])
+#                     G_av=2.0*gj1*gj2/(gj1+gj2)
+                     #Guan
+                     G_av=1/4*(1/Gmat[k,j]+1/Gmat[k+1,j]+1/Gmat[k,j+1]+1/Gmat[k+1,j+1])
+                     G_av=1/G_av
                  end
 
                  vr_f1,vr_b1=vr[k+1,j],vr[k,j]
@@ -1560,9 +1572,12 @@ function PML_update_stress_1st_BottomRight_Por!(vr,vz,trr,tpp,tzz,trz,vfr,vfz,pf
                  if (Gmat[k,j]*Gmat[k,j+1]*Gmat[k+1,j]*Gmat[k+1,j+1]==0.0)
                       G_av=0.0
                  else
-                     gj1=2.0*Gmat[k,j]*Gmat[k+1,j]/(Gmat[k,j]+Gmat[k+1,j])
-                     gj2=2.0*Gmat[k,j+1]*Gmat[k+1,j+1]/(Gmat[k,j+1]+Gmat[k+1,j+1])
-                     G_av=2.0*gj1*gj2/(gj1+gj2)
+#                     gj1=2.0*Gmat[k,j]*Gmat[k+1,j]/(Gmat[k,j]+Gmat[k+1,j])
+#                     gj2=2.0*Gmat[k,j+1]*Gmat[k+1,j+1]/(Gmat[k,j+1]+Gmat[k+1,j+1])
+#                     G_av=2.0*gj1*gj2/(gj1+gj2)
+                     #Guan
+                     G_av=1/4*(1/Gmat[k,j]+1/Gmat[k+1,j]+1/Gmat[k,j+1]+1/Gmat[k+1,j+1])
+                     G_av=1/G_av
                  end
 
                  vr_f1,vr_b1=vr[k+1,j],vr[k,j]
@@ -3148,9 +3163,12 @@ j=1
     if (Gmat[k,j]*Gmat[k,j+1]*Gmat[k+1,j]*Gmat[k+1,j+1]==0.0)
          G_av=0.0
     else
-        gj1=2.0*Gmat[k,j]*Gmat[k+1,j]/(Gmat[k,j]+Gmat[k+1,j])
-        gj2=2.0*Gmat[k,j+1]*Gmat[k+1,j+1]/(Gmat[k,j+1]+Gmat[k+1,j+1])
-        G_av=2.0*gj1*gj2/(gj1+gj2)
+#        gj1=2.0*Gmat[k,j]*Gmat[k+1,j]/(Gmat[k,j]+Gmat[k+1,j])
+#        gj2=2.0*Gmat[k,j+1]*Gmat[k+1,j+1]/(Gmat[k,j+1]+Gmat[k+1,j+1])
+#        G_av=2.0*gj1*gj2/(gj1+gj2)
+       #Guan
+        G_av=1/4*(1/Gmat[k,j]+1/Gmat[k+1,j]+1/Gmat[k,j+1]+1/Gmat[k+1,j+1])
+        G_av=1/G_av    
     end
 
     vr_f1,vr_b1=vr[k+1,j],vr[k,j]
@@ -3257,9 +3275,12 @@ j=1
         if (Gmat[k,j]*Gmat[k,j+1]*Gmat[k+1,j]*Gmat[k+1,j+1]==0.0)
              G_av=0.0
         else
-            gj1=2.0*Gmat[k,j]*Gmat[k+1,j]/(Gmat[k,j]+Gmat[k+1,j])
-            gj2=2.0*Gmat[k,j+1]*Gmat[k+1,j+1]/(Gmat[k,j+1]+Gmat[k+1,j+1])
-            G_av=2.0*gj1*gj2/(gj1+gj2)
+#            gj1=2.0*Gmat[k,j]*Gmat[k+1,j]/(Gmat[k,j]+Gmat[k+1,j])
+#            gj2=2.0*Gmat[k,j+1]*Gmat[k+1,j+1]/(Gmat[k,j+1]+Gmat[k+1,j+1])
+#            G_av=2.0*gj1*gj2/(gj1+gj2)
+           #Guan
+            G_av=1/4*(1/Gmat[k,j]+1/Gmat[k+1,j]+1/Gmat[k,j+1]+1/Gmat[k+1,j+1])
+            G_av=1/G_av
         end
 
         vr_f1,vr_b1=vr[k+1,j],vr[k,j]

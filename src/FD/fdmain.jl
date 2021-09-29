@@ -394,19 +394,16 @@ function update_stress_1st_Por!(vr,vz,trr,tpp,tzz,trz,vfr,vfz,pf,
          r_now=(j-1)*dr+dr/2.0 #for trp,trz Mittet
          trz_now=trz[k,j]
          #---Special averaging---
-#         if (mmat[k,j]+mmat[k+1,j+1]==0.0)
-#             mu_av=0.0
-#         else
-#             mu_av=2.0*mmat[k,j]*mmat[k+1,j+1]/(mmat[k,j]+mmat[k+1,j+1]) #be careful
-#         end
          if (Gmat[k,j]*Gmat[k,j+1]*Gmat[k+1,j]*Gmat[k+1,j+1]==0.0)
               G_av=0.0
          else
-             gj1=2.0*Gmat[k,j]*Gmat[k+1,j]/(Gmat[k,j]+Gmat[k+1,j])
-             gj2=2.0*Gmat[k,j+1]*Gmat[k+1,j+1]/(Gmat[k,j+1]+Gmat[k+1,j+1])
-             G_av=2.0*gj1*gj2/(gj1+gj2)
+#             gj1=2.0*Gmat[k,j]*Gmat[k+1,j]/(Gmat[k,j]+Gmat[k+1,j])
+#             gj2=2.0*Gmat[k,j+1]*Gmat[k+1,j+1]/(Gmat[k,j+1]+Gmat[k+1,j+1])
+#             G_av=2.0*gj1*gj2/(gj1+gj2)
+             #Guan
+             G_av=1/4*(1/Gmat[k,j]+1/Gmat[k+1,j]+1/Gmat[k,j+1]+1/Gmat[k+1,j+1])
+             G_av=1/G_av
          end
-#         println(mu_av)
          #---End special averaging---
 
          vr_f1,vr_b1=vr[k+1,j],vr[k,j]
@@ -662,19 +659,16 @@ for k=LPML_z+1:nz-LPML_z
         r_now=(j-1)*dr+dr/2.0 #for trp,trz Mittet
         trz_now=trz[k,j]
         #---Special averaging---
-#         if (mmat[k,j]+mmat[k+1,j+1]==0.0)
-#             mu_av=0.0
-#         else
-#             mu_av=2.0*mmat[k,j]*mmat[k+1,j+1]/(mmat[k,j]+mmat[k+1,j+1]) #be careful
-#         end
         if (Gmat[k,j]*Gmat[k,j+1]*Gmat[k+1,j]*Gmat[k+1,j+1]==0.0)
              G_av=0.0
         else
-            gj1=2.0*Gmat[k,j]*Gmat[k+1,j]/(Gmat[k,j]+Gmat[k+1,j])
-            gj2=2.0*Gmat[k,j+1]*Gmat[k+1,j+1]/(Gmat[k,j+1]+Gmat[k+1,j+1])
-            G_av=2.0*gj1*gj2/(gj1+gj2)
+#            gj1=2.0*Gmat[k,j]*Gmat[k+1,j]/(Gmat[k,j]+Gmat[k+1,j])
+#            gj2=2.0*Gmat[k,j+1]*Gmat[k+1,j+1]/(Gmat[k,j+1]+Gmat[k+1,j+1])
+#            G_av=2.0*gj1*gj2/(gj1+gj2)
+            #Guan
+            G_av=1/4*(1/Gmat[k,j]+1/Gmat[k+1,j]+1/Gmat[k,j+1]+1/Gmat[k+1,j+1])
+            G_av=1/G_av
         end
-#         println(mu_av)
         #---End special averaging---
 
         vr_f1,vr_b1=vr[k+1,j],vr[k,j]
