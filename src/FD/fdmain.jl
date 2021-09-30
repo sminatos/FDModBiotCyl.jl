@@ -280,7 +280,6 @@ function update_tzz_1st_Por(tzz_now,vr_f,vr_b,vz_f,vz_b,vr_av,
     #_av: averaged values (vr_av)
     #vphi is at the same location
     #r_now: current radial position @trr
-    #m: order (0: monopole, 1:dipole)
     drvr=vr_f-vr_b
     drvr=drvr/dr
     dzvz=vz_f-vz_b
@@ -511,7 +510,7 @@ for k=LPML_z+1:nz-LPML_z #caution !
         drtrz=(trz_f1-trz_b1)
         drtrz=drtrz/dr
 
-        A=2.0*drtrz+dztzz
+        A=2.0*drtrz+dztzz    
 
         vfz_now=vfz[k,j]
         pf_f1,pf_b1=pf[k+1,j],pf[k,j]

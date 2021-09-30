@@ -609,7 +609,7 @@ main_loop!(nr,nz,dr,dz,Rho,Rhof,M,C,H,G,D1,D2,dt,nt,T,
 CPUtoc()
 println("elapsed real time: ", round(time() - start;digits=3)," seconds")
 
-#error("Stopped w/o problem.")
+error("Stopped w/o problem.")
 
 
 
