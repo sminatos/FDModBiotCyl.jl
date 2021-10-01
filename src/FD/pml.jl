@@ -309,7 +309,8 @@ PML_IWr2=P0*(1.0/2.0*a/LPML_r_meter*(dvec_r2).^2+
 #    Ralpha=1E-6 #
     d0_r=-3*Vmax*log(Ralpha)/(2*LPML_r_meter)
     d0_z=-3*Vmax*log(Ralpha)/(2*LPML_z_meter)
-    amax=pi*f0
+    #    amax=pi*f0
+    amax=0 #do not change! (Wang's PML implementation needs amax=0)
         
     dvec_r=collect(1:1:LPML_r)
     dvec_z=collect(1:1:LPML_z)
@@ -1067,9 +1068,9 @@ function PML_update_stress_1st_Top_Por!(vr,vz,trr,tpp,tzz,trz,vfr,vfz,pf,
                         dz,dr,dt,r_now,C,H,G)
 
                  #PML addition
-                 trr[k,j]=trr[k,j]
-                          +dt*(H-2G)*Rz_T[LPML_z-k+1,j]
-                          +dt*C*RzPE_T[LPML_z-k+1,j]
+                 trr[k,j]=trr[k,j]+
+                          dt*(H-2G)*Rz_T[LPML_z-k+1,j]+
+                          dt*C*RzPE_T[LPML_z-k+1,j]
 
 
                  tpp_now=tpp[k,j]
@@ -1078,9 +1079,9 @@ function PML_update_stress_1st_Top_Por!(vr,vz,trr,tpp,tzz,trz,vfr,vfz,pf,
                         dz,dr,dt,r_now,C,H,G)
 
                  #PML addition
-                 tpp[k,j]=tpp[k,j]
-                          +dt*(H-2G)*Rz_T[LPML_z-k+1,j]
-                          +dt*C*RzPE_T[LPML_z-k+1,j]
+                 tpp[k,j]=tpp[k,j]+
+                          dt*(H-2G)*Rz_T[LPML_z-k+1,j]+
+                          dt*C*RzPE_T[LPML_z-k+1,j]
 
 
                  tzz_now=tzz[k,j]
@@ -1089,9 +1090,9 @@ function PML_update_stress_1st_Top_Por!(vr,vz,trr,tpp,tzz,trz,vfr,vfz,pf,
                         dz,dr,dt,r_now,C,H,G)
 
                  #PML addition
-                 tzz[k,j]=tzz[k,j]
-                          +dt*H*Rz_T[LPML_z-k+1,j]
-                          +dt*C*RzPE_T[LPML_z-k+1,j]
+                 tzz[k,j]=tzz[k,j]+
+                          dt*H*Rz_T[LPML_z-k+1,j]+
+                          dt*C*RzPE_T[LPML_z-k+1,j]
 
 
                  pf_now=pf[k,j]
@@ -1100,9 +1101,9 @@ function PML_update_stress_1st_Top_Por!(vr,vz,trr,tpp,tzz,trz,vfr,vfz,pf,
                         dz,dr,dt,r_now,C,M)
 
                  #PML addition
-                 pf[k,j]=pf[k,j]
-                         -dt*C*Rz_T[LPML_z-k+1,j]
-                         -dt*M*RzPE_T[LPML_z-k+1,j]
+                 pf[k,j]=pf[k,j]-
+                         dt*C*Rz_T[LPML_z-k+1,j]-
+                         dt*M*RzPE_T[LPML_z-k+1,j]
              end #if k==1
 
 
@@ -1172,9 +1173,9 @@ function PML_update_stress_1st_Bottom_Por!(vr,vz,trr,tpp,tzz,trz,vfr,vfz,pf,
 
 
              #PML addition
-             trr[k,j]=trr[k,j]
-                     +dt*(H-2G)*Rz_B[k-nz+LPML_z,j]
-                     +dt*C*RzPE_B[k-nz+LPML_z,j]
+             trr[k,j]=trr[k,j]+
+                     dt*(H-2G)*Rz_B[k-nz+LPML_z,j]+
+                     dt*C*RzPE_B[k-nz+LPML_z,j]
 
 
              tpp_now=tpp[k,j]
@@ -1183,9 +1184,9 @@ function PML_update_stress_1st_Bottom_Por!(vr,vz,trr,tpp,tzz,trz,vfr,vfz,pf,
                     dz,dr,dt,r_now,C,H,G)
 
              #PML addition
-             tpp[k,j]=tpp[k,j]
-                      +dt*(H-2G)*Rz_B[k-nz+LPML_z,j]
-                      +dt*C*RzPE_B[k-nz+LPML_z,j]
+             tpp[k,j]=tpp[k,j]+
+                      dt*(H-2G)*Rz_B[k-nz+LPML_z,j]+
+                      dt*C*RzPE_B[k-nz+LPML_z,j]
 
 
              tzz_now=tzz[k,j]
@@ -1194,9 +1195,9 @@ function PML_update_stress_1st_Bottom_Por!(vr,vz,trr,tpp,tzz,trz,vfr,vfz,pf,
                     dz,dr,dt,r_now,C,H,G)
 
              #PML addition
-             tzz[k,j]=tzz[k,j]
-                       +dt*H*Rz_B[k-nz+LPML_z,j]
-                       +dt*C*RzPE_B[k-nz+LPML_z,j]
+             tzz[k,j]=tzz[k,j]+
+                       dt*H*Rz_B[k-nz+LPML_z,j]+
+                       dt*C*RzPE_B[k-nz+LPML_z,j]
 
 
              pf_now=pf[k,j]
@@ -1205,9 +1206,9 @@ function PML_update_stress_1st_Bottom_Por!(vr,vz,trr,tpp,tzz,trz,vfr,vfz,pf,
                     dz,dr,dt,r_now,C,M)
 
              #PML addition
-             pf[k,j]=pf[k,j]
-                   -dt*C*Rz_B[k-nz+LPML_z,j]
-                   -dt*M*RzPE_B[k-nz+LPML_z,j]
+             pf[k,j]=pf[k,j]-
+                   dt*C*Rz_B[k-nz+LPML_z,j]-
+                   dt*M*RzPE_B[k-nz+LPML_z,j]
 
 
 
@@ -1274,10 +1275,10 @@ function PML_update_stress_1st_Right_Por!(vr,vz,trr,tpp,tzz,trz,vfr,vfz,pf,
                     dz,dr,dt,r_now,C,H,G)
 
              #PML addition
-             trr[k,j]=trr[k,j]
-                      +dt*(H-2G)*(1.0/r_now*Rp_R[k-LPML_z,j-nr+LPML_r])
-                      +dt*H*Rr_R[k-LPML_z,j-nr+LPML_r]
-                      +dt*C*(
+             trr[k,j]=trr[k,j]+
+                      dt*(H-2G)*(1.0/r_now*Rp_R[k-LPML_z,j-nr+LPML_r])+
+                      dt*H*Rr_R[k-LPML_z,j-nr+LPML_r]+
+                      dt*C*(
                         RrPE_R[k-LPML_z,j-nr+LPML_r]+1.0/r_now*RpPE_R[k-LPML_z,j-nr+LPML_r])
 
 
@@ -1288,10 +1289,10 @@ function PML_update_stress_1st_Right_Por!(vr,vz,trr,tpp,tzz,trz,vfr,vfz,pf,
                     dz,dr,dt,r_now,C,H,G)
 
              #PML addition
-             tpp[k,j]=tpp[k,j]
-                    +dt*(H-2G)*(Rr_R[k-LPML_z,j-nr+LPML_r])
-                    +dt*H*(1.0/r_now*Rp_R[k-LPML_z,j-nr+LPML_r])
-                    +dt*C*(
+             tpp[k,j]=tpp[k,j]+
+                    dt*(H-2G)*(Rr_R[k-LPML_z,j-nr+LPML_r])+
+                    dt*H*(1.0/r_now*Rp_R[k-LPML_z,j-nr+LPML_r])+
+                    dt*C*(
                     RrPE_R[k-LPML_z,j-nr+LPML_r]+1.0/r_now*RpPE_R[k-LPML_z,j-nr+LPML_r])
 
              tzz_now=tzz[k,j]
@@ -1300,9 +1301,9 @@ function PML_update_stress_1st_Right_Por!(vr,vz,trr,tpp,tzz,trz,vfr,vfz,pf,
                     dz,dr,dt,r_now,C,H,G)
 
              #PML addition
-             tzz[k,j]=tzz[k,j]
-                     +dt*(H-2G)*(1.0/r_now*Rp_R[k-LPML_z,j-nr+LPML_r]+Rr_R[k-LPML_z,j-nr+LPML_r])
-                     +dt*C*(
+             tzz[k,j]=tzz[k,j]+
+                     dt*(H-2G)*(1.0/r_now*Rp_R[k-LPML_z,j-nr+LPML_r]+Rr_R[k-LPML_z,j-nr+LPML_r])+
+                     dt*C*(
                      RrPE_R[k-LPML_z,j-nr+LPML_r]+1.0/r_now*RpPE_R[k-LPML_z,j-nr+LPML_r])
 
 
@@ -1312,9 +1313,9 @@ function PML_update_stress_1st_Right_Por!(vr,vz,trr,tpp,tzz,trz,vfr,vfz,pf,
                     dz,dr,dt,r_now,C,M)
 
              #PML addition
-             pf[k,j]=pf[k,j]
-                     -dt*C*(Rr_R[k-LPML_z,j-nr+LPML_r]+1.0/r_now*Rp_R[k-LPML_z,j-nr+LPML_r])
-                     -dt*M*(RrPE_R[k-LPML_z,j-nr+LPML_r]+1.0/r_now*RpPE_R[k-LPML_z,j-nr+LPML_r])
+             pf[k,j]=pf[k,j]-
+                     dt*C*(Rr_R[k-LPML_z,j-nr+LPML_r]+1.0/r_now*Rp_R[k-LPML_z,j-nr+LPML_r])-
+                     dt*M*(RrPE_R[k-LPML_z,j-nr+LPML_r]+1.0/r_now*RpPE_R[k-LPML_z,j-nr+LPML_r])
 
 
 
@@ -1386,13 +1387,13 @@ function PML_update_stress_1st_TopRight_Por!(vr,vz,trr,tpp,tzz,trz,vfr,vfz,pf,
                        dz,dr,dt,r_now,C,H,G)
 
                 #PML addition
-                trr[k,j]=trr[k,j]
-                       +dt*(H-2G)*(1.0/r_now*Rp_TR[LPML_z-k+1,j-nr+LPML_r]+Rz_TR[LPML_z-k+1,j-nr+LPML_r])
-                       +dt*H*Rr_TR[LPML_z-k+1,j-nr+LPML_r]
-                       +dt*C*(
-                         RrPE_TR[LPML_z-k+1,j-nr+LPML_r]
-                         +1.0/r_now*RpPE_TR[LPML_z-k+1,j-nr+LPML_r]
-                         +RzPE_TR[LPML_z-k+1,j-nr+LPML_r])
+                trr[k,j]=trr[k,j]+
+                       dt*(H-2G)*(1.0/r_now*Rp_TR[LPML_z-k+1,j-nr+LPML_r]+Rz_TR[LPML_z-k+1,j-nr+LPML_r])+
+                       dt*H*Rr_TR[LPML_z-k+1,j-nr+LPML_r]+
+                       dt*C*(
+                         RrPE_TR[LPML_z-k+1,j-nr+LPML_r]+
+                         1.0/r_now*RpPE_TR[LPML_z-k+1,j-nr+LPML_r]+
+                         RzPE_TR[LPML_z-k+1,j-nr+LPML_r])
 
 
                  tpp_now=tpp[k,j]
@@ -1401,13 +1402,13 @@ function PML_update_stress_1st_TopRight_Por!(vr,vz,trr,tpp,tzz,trz,vfr,vfz,pf,
                         dz,dr,dt,r_now,C,H,G)
 
                  #PML addition
-                 tpp[k,j]=tpp[k,j]
-                     +dt*(H-2G)*(Rz_TR[LPML_z-k+1,j-nr+LPML_r]+Rr_TR[LPML_z-k+1,j-nr+LPML_r])
-                     +dt*H*(1.0/r_now*Rp_TR[LPML_z-k+1,j-nr+LPML_r])
-                     +dt*C*(
-                       RrPE_TR[LPML_z-k+1,j-nr+LPML_r]
-                       +1.0/r_now*RpPE_TR[LPML_z-k+1,j-nr+LPML_r]
-                       +RzPE_TR[LPML_z-k+1,j-nr+LPML_r])
+                 tpp[k,j]=tpp[k,j]+
+                     dt*(H-2G)*(Rz_TR[LPML_z-k+1,j-nr+LPML_r]+Rr_TR[LPML_z-k+1,j-nr+LPML_r])+
+                     dt*H*(1.0/r_now*Rp_TR[LPML_z-k+1,j-nr+LPML_r])+
+                     dt*C*(
+                       RrPE_TR[LPML_z-k+1,j-nr+LPML_r]+
+                       1.0/r_now*RpPE_TR[LPML_z-k+1,j-nr+LPML_r]+
+                       RzPE_TR[LPML_z-k+1,j-nr+LPML_r])
 
 
                  tzz_now=tzz[k,j]
@@ -1417,14 +1418,14 @@ function PML_update_stress_1st_TopRight_Por!(vr,vz,trr,tpp,tzz,trz,vfr,vfz,pf,
 
 
                  #PML addition
-                 tzz[k,j]=tzz[k,j]
-                       +dt*(H-2G)*(1.0/r_now*Rp_TR[LPML_z-k+1,j-nr+LPML_r]
-                                    +Rr_TR[LPML_z-k+1,j-nr+LPML_r])
-                       +dt*H*Rz_TR[LPML_z-k+1,j-nr+LPML_r]
-                       +dt*C*(
-                         RrPE_TR[LPML_z-k+1,j-nr+LPML_r]
-                         +1.0/r_now*RpPE_TR[LPML_z-k+1,j-nr+LPML_r]
-                         +RzPE_TR[LPML_z-k+1,j-nr+LPML_r])
+                 tzz[k,j]=tzz[k,j]+
+                       dt*(H-2G)*(1.0/r_now*Rp_TR[LPML_z-k+1,j-nr+LPML_r]+
+                                    Rr_TR[LPML_z-k+1,j-nr+LPML_r])+
+                       dt*H*Rz_TR[LPML_z-k+1,j-nr+LPML_r]+
+                       dt*C*(
+                         RrPE_TR[LPML_z-k+1,j-nr+LPML_r]+
+                         1.0/r_now*RpPE_TR[LPML_z-k+1,j-nr+LPML_r]+
+                         RzPE_TR[LPML_z-k+1,j-nr+LPML_r])
 
 
 
@@ -1435,13 +1436,13 @@ function PML_update_stress_1st_TopRight_Por!(vr,vz,trr,tpp,tzz,trz,vfr,vfz,pf,
 
 
                  #PML addition
-                 pf[k,j]=pf[k,j]
-                         -dt*C*(Rr_TR[LPML_z-k+1,j-nr+LPML_r]
-                            +1.0/r_now*Rp_TR[LPML_z-k+1,j-nr+LPML_r]
-                            +Rz_TR[LPML_z-k+1,j-nr+LPML_r])
-                         -dt*M*(RrPE_TR[LPML_z-k+1,j-nr+LPML_r]
-                            +1.0/r_now*RpPE_TR[LPML_z-k+1,j-nr+LPML_r]
-                            +RzPE_TR[LPML_z-k+1,j-nr+LPML_r])
+                 pf[k,j]=pf[k,j]-
+                         dt*C*(Rr_TR[LPML_z-k+1,j-nr+LPML_r]+
+                            1.0/r_now*Rp_TR[LPML_z-k+1,j-nr+LPML_r]+
+                            Rz_TR[LPML_z-k+1,j-nr+LPML_r])-
+                         dt*M*(RrPE_TR[LPML_z-k+1,j-nr+LPML_r]+
+                            1.0/r_now*RpPE_TR[LPML_z-k+1,j-nr+LPML_r]+
+                            RzPE_TR[LPML_z-k+1,j-nr+LPML_r])
              end #if k==1
 
              if(j!=nr)
@@ -1509,13 +1510,13 @@ function PML_update_stress_1st_BottomRight_Por!(vr,vz,trr,tpp,tzz,trz,vfr,vfz,pf
                    dz,dr,dt,r_now,C,H,G)
 
             #PML addition
-            trr[k,j]=trr[k,j]
-                   +dt*(H-2G)*(1.0/r_now*Rp_BR[k-nz+LPML_z,j-nr+LPML_r]+Rz_BR[k-nz+LPML_z,j-nr+LPML_r])
-                   +dt*H*Rr_BR[k-nz+LPML_z,j-nr+LPML_r]
-                   +dt*C*(
-                     RrPE_BR[k-nz+LPML_z,j-nr+LPML_r]
-                     +1.0/r_now*RpPE_BR[k-nz+LPML_z,j-nr+LPML_r]
-                     +RzPE_BR[k-nz+LPML_z,j-nr+LPML_r])
+            trr[k,j]=trr[k,j]+
+                   dt*(H-2G)*(1.0/r_now*Rp_BR[k-nz+LPML_z,j-nr+LPML_r]+Rz_BR[k-nz+LPML_z,j-nr+LPML_r])+
+                   dt*H*Rr_BR[k-nz+LPML_z,j-nr+LPML_r]+
+                   dt*C*(
+                     RrPE_BR[k-nz+LPML_z,j-nr+LPML_r]+
+                     1.0/r_now*RpPE_BR[k-nz+LPML_z,j-nr+LPML_r]+
+                     RzPE_BR[k-nz+LPML_z,j-nr+LPML_r])
 
 
              tpp_now=tpp[k,j]
@@ -1524,13 +1525,13 @@ function PML_update_stress_1st_BottomRight_Por!(vr,vz,trr,tpp,tzz,trz,vfr,vfz,pf
                     dz,dr,dt,r_now,C,H,G)
 
              #PML addition
-             tpp[k,j]=tpp[k,j]
-                 +dt*(H-2G)*(Rz_BR[k-nz+LPML_z,j-nr+LPML_r]+Rr_BR[k-nz+LPML_z,j-nr+LPML_r])
-                 +dt*H*(1.0/r_now*Rp_BR[k-nz+LPML_z,j-nr+LPML_r])
-                 +dt*C*(
-                   RrPE_BR[k-nz+LPML_z,j-nr+LPML_r]
-                   +1.0/r_now*RpPE_BR[k-nz+LPML_z,j-nr+LPML_r]
-                   +RzPE_BR[k-nz+LPML_z,j-nr+LPML_r])
+             tpp[k,j]=tpp[k,j]+
+                 dt*(H-2G)*(Rz_BR[k-nz+LPML_z,j-nr+LPML_r]+Rr_BR[k-nz+LPML_z,j-nr+LPML_r])+
+                 dt*H*(1.0/r_now*Rp_BR[k-nz+LPML_z,j-nr+LPML_r])+
+                 dt*C*(
+                   RrPE_BR[k-nz+LPML_z,j-nr+LPML_r]+
+                   1.0/r_now*RpPE_BR[k-nz+LPML_z,j-nr+LPML_r]+
+                   RzPE_BR[k-nz+LPML_z,j-nr+LPML_r])
 
 
              tzz_now=tzz[k,j]
@@ -1539,14 +1540,14 @@ function PML_update_stress_1st_BottomRight_Por!(vr,vz,trr,tpp,tzz,trz,vfr,vfz,pf
                     dz,dr,dt,r_now,C,H,G)
 
              #PML addition
-             tzz[k,j]=tzz[k,j]
-                   +dt*(H-2G)*(1.0/r_now*Rp_BR[k-nz+LPML_z,j-nr+LPML_r]
-                                +Rr_BR[k-nz+LPML_z,j-nr+LPML_r])
-                   +dt*H*Rz_BR[k-nz+LPML_z,j-nr+LPML_r]
-                   +dt*C*(
-                     RrPE_BR[k-nz+LPML_z,j-nr+LPML_r]
-                     +1.0/r_now*RpPE_BR[k-nz+LPML_z,j-nr+LPML_r]
-                     +RzPE_BR[k-nz+LPML_z,j-nr+LPML_r])
+             tzz[k,j]=tzz[k,j]+
+                   dt*(H-2G)*(1.0/r_now*Rp_BR[k-nz+LPML_z,j-nr+LPML_r]+
+                                Rr_BR[k-nz+LPML_z,j-nr+LPML_r])+
+                   dt*H*Rz_BR[k-nz+LPML_z,j-nr+LPML_r]+
+                   dt*C*(
+                     RrPE_BR[k-nz+LPML_z,j-nr+LPML_r]+
+                     1.0/r_now*RpPE_BR[k-nz+LPML_z,j-nr+LPML_r]+
+                     RzPE_BR[k-nz+LPML_z,j-nr+LPML_r])
 
 
 
@@ -1556,13 +1557,13 @@ function PML_update_stress_1st_BottomRight_Por!(vr,vz,trr,tpp,tzz,trz,vfr,vfz,pf
                     dz,dr,dt,r_now,C,M)
 
              #PML addition
-             pf[k,j]=pf[k,j]
-                     -dt*C*(Rr_BR[k-nz+LPML_z,j-nr+LPML_r]
-                        +1.0/r_now*Rp_BR[k-nz+LPML_z,j-nr+LPML_r]
-                        +Rz_BR[k-nz+LPML_z,j-nr+LPML_r])
-                     -dt*M*(RrPE_BR[k-nz+LPML_z,j-nr+LPML_r]
-                        +1.0/r_now*RpPE_BR[k-nz+LPML_z,j-nr+LPML_r]
-                        +RzPE_BR[k-nz+LPML_z,j-nr+LPML_r])
+             pf[k,j]=pf[k,j]-
+                     dt*C*(Rr_BR[k-nz+LPML_z,j-nr+LPML_r]+
+                        1.0/r_now*Rp_BR[k-nz+LPML_z,j-nr+LPML_r]+
+                        Rz_BR[k-nz+LPML_z,j-nr+LPML_r])-
+                     dt*M*(RrPE_BR[k-nz+LPML_z,j-nr+LPML_r]+
+                        1.0/r_now*RpPE_BR[k-nz+LPML_z,j-nr+LPML_r]+
+                        RzPE_BR[k-nz+LPML_z,j-nr+LPML_r])
 
 
              if(k!=nz && j!=nr)
@@ -3123,9 +3124,9 @@ j=1
                              +H*drvr
                              +C*(2drvfr+dzvfz)
                              )
-        trr[k,j]=trr[k,j]
-                +dt*(H-2G)*Rz_T[LPML_z-k+1,j]
-                +dt*C*RzPE_T[LPML_z-k+1,j]
+        trr[k,j]=trr[k,j]+
+                dt*(H-2G)*Rz_T[LPML_z-k+1,j]+
+                dt*C*RzPE_T[LPML_z-k+1,j]
 
 
         tpp[k,j]=tpp[k,j]+dt*(
@@ -3133,9 +3134,9 @@ j=1
                             +H*drvr
                             +C*(2drvfr+dzvfz)
                             )
-        tpp[k,j]=tpp[k,j]
-                 +dt*(H-2G)*Rz_T[LPML_z-k+1,j]
-                 +dt*C*RzPE_T[LPML_z-k+1,j]
+        tpp[k,j]=tpp[k,j]+
+                 dt*(H-2G)*Rz_T[LPML_z-k+1,j]+
+                 dt*C*RzPE_T[LPML_z-k+1,j]
 
 
         tzz[k,j]=tzz[k,j]+dt*(
@@ -3143,18 +3144,18 @@ j=1
                             +H*dzvz
                             +C*(2.0*drvfr+dzvfz)
                             )
-        tzz[k,j]=tzz[k,j]
-                 +dt*H*Rz_T[LPML_z-k+1,j]
-                 +dt*C*RzPE_T[LPML_z-k+1,j]
+        tzz[k,j]=tzz[k,j]+
+                 dt*H*Rz_T[LPML_z-k+1,j]+
+                 dt*C*RzPE_T[LPML_z-k+1,j]
 
 
         pf[k,j]=pf[k,j]+dt*(
                             -C*(2.0*drvr+dzvz)
                             -M*(2.0*drvfr+dzvfz)
                             )
-        pf[k,j]=pf[k,j]
-                -dt*C*Rz_T[LPML_z-k+1,j]
-                -dt*M*RzPE_T[LPML_z-k+1,j]
+        pf[k,j]=pf[k,j]-
+                dt*C*Rz_T[LPML_z-k+1,j]-
+                dt*M*RzPE_T[LPML_z-k+1,j]
     end #if k==1
 
     #---trp and trz not on left edge!
@@ -3237,35 +3238,35 @@ j=1
                          +H*drvr
                          +C*(2drvfr+dzvfz)
                          )
-    trr[k,j]=trr[k,j]
-            +dt*(H-2G)*Rz_B[k-nz+LPML_z,j]
-            +dt*C*RzPE_B[k-nz+LPML_z,j]
+    trr[k,j]=trr[k,j]+
+            dt*(H-2G)*Rz_B[k-nz+LPML_z,j]+
+            dt*C*RzPE_B[k-nz+LPML_z,j]
 
     tpp[k,j]=tpp[k,j]+dt*(
                         +(H-2G)*(drvr+dzvz)
                         +H*drvr
                         +C*(2drvfr+dzvfz)
                         )
-    tpp[k,j]=tpp[k,j]
-             +dt*(H-2G)*Rz_B[k-nz+LPML_z,j]
-             +dt*C*RzPE_B[k-nz+LPML_z,j]
+    tpp[k,j]=tpp[k,j]+
+             dt*(H-2G)*Rz_B[k-nz+LPML_z,j]+
+             dt*C*RzPE_B[k-nz+LPML_z,j]
 
     tzz[k,j]=tzz[k,j]+dt*(
                         +(H-2.0*G)*2.0*drvr
                         +H*dzvz
                         +C*(2.0*drvfr+dzvfz)
                         )
-    tzz[k,j]=tzz[k,j]
-             +dt*H*Rz_B[k-nz+LPML_z,j]
-             +dt*C*RzPE_B[k-nz+LPML_z,j]
+    tzz[k,j]=tzz[k,j]+
+             dt*H*Rz_B[k-nz+LPML_z,j]+
+             dt*C*RzPE_B[k-nz+LPML_z,j]
 
     pf[k,j]=pf[k,j]+dt*(
                         -C*(2.0*drvr+dzvz)
                         -M*(2.0*drvfr+dzvfz)
                         )
-    pf[k,j]=pf[k,j]
-            -dt*C*Rz_B[k-nz+LPML_z,j]
-            -dt*M*RzPE_B[k-nz+LPML_z,j]
+    pf[k,j]=pf[k,j]-
+            dt*C*Rz_B[k-nz+LPML_z,j]-
+            dt*M*RzPE_B[k-nz+LPML_z,j]
 
 
     if(k!=nz)
