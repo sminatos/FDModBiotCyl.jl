@@ -94,10 +94,10 @@ function makemodel_homogeneous_Elastic()
 # homogeneous elastic media
 
 #Model size
-#   nr=251 #samples
-#   nz=351 #samples
-   nr=51 #samples
-   nz=101 #samples
+   nr=251 #samples
+   nz=351 #samples
+#   nr=51 #samples
+#   nz=101 #samples
    dr=0.5 #meter
    dz=0.5 #meter
 
@@ -157,7 +157,7 @@ function makemodel_homogeneous_Elastic()
    ==========================#
    Flag_E=zeros(nz,nr)
    Vp1_elastic=2500.0 #Or, Specify K_elastic
-   Vs1_elastic=2000.0*0
+   Vs1_elastic=2000.0
    Rho1_elastic=2500.0
 
    G_elastic=Vs1_elastic^2*Rho1_elastic
@@ -323,8 +323,8 @@ vfz_old=zeros(nz,nr)
 #    G,nr,nz,dr,dz,dt)
 
 #error()
-#@showprogress for ii=1:nt
-@showprogress for ii=1:201
+@showprogress for ii=1:nt
+#@showprogress for ii=1:301
 #for ii=1:1
 
 #@show Pzz_T[1,10],Srz_T[1,10]
@@ -411,10 +411,6 @@ PML_update_memRS!(Rz_T,Srz_T,RzPE_T,
 
 #--killing r-stretching
 #Rr_BR=Rr_BR*0 #this is the culprit
-Rr_BR[1,:]=Rr_R[end,:]
-Rr_BR[2,:]=Rr_R[end,:]
-Rr_BR[3,:]=Rr_R[end,:]
-Rr_BR[4,:]=Rr_R[end,:]
 #Rp_BR=Rp_BR*0
 #Rz_BR
 #Rrz_BR=Rrz_BR*0
@@ -423,14 +419,14 @@ Rr_BR[4,:]=Rr_R[end,:]
 #Rr_TR=Rr_TR*0
 
 #--killing z-stretching
-Rz_BR=Rz_BR*0
-Rrz_BR=Rrz_BR*0
-Rz_TR=Rz_TR*0
-Rrz_TR=Rrz_TR*0
+#Rz_BR=Rz_BR*0
+#Rrz_BR=Rrz_BR*0
+#Rz_TR=Rz_TR*0
+#Rrz_TR=Rrz_TR*0
 
 #--src injection (velocity)
-#srcamp=src_func[ii]
-#srcapply!(vz,src_index,src_dn,srcamp)
+srcamp=src_func[ii]
+srcapply!(vz,src_index,src_dn,srcamp)
 #srcapply!(vr,src_index,src_dn,srcamp)
 
 #----Time at (ii-1)*dt+dt/2----(updating stress)---
@@ -476,11 +472,11 @@ ApplyBCLeft_stress!(vr,vz,trr,tpp,tzz,trz,vfr,vfz,pf,
 #return
 
 #--src injection (stress:monopole src)
-srcamp=-src_func[ii]
+#srcamp=-src_func[ii]
 #srcapply!(trz,src_index,src_dn,srcamp)
-srcapply!(tzz,src_index,src_dn,srcamp)
-srcapply!(trr,src_index,src_dn,srcamp)
-srcapply!(tpp,src_index,src_dn,srcamp)
+#srcapply!(tzz,src_index,src_dn,srcamp)
+#srcapply!(trr,src_index,src_dn,srcamp)
+#srcapply!(tpp,src_index,src_dn,srcamp)
 
 
 #---Additional BC when Flag_Acoustic/Flag_Elastic
@@ -507,10 +503,10 @@ PML_update_memPQ!(Prz_T,Pzz_T,PzzPE_T,
 #PrrPE_R=PrrPE_R*0
 
 #killing z-stretching
-Pzz_BR=Pzz_BR*0
-Prz_BR=Prz_BR*0
-Pzz_TR=Pzz_TR*0
-Prz_TR=Prz_TR*0
+#Pzz_BR=Pzz_BR*0
+#Prz_BR=Prz_BR*0
+#Pzz_TR=Pzz_TR*0
+#Prz_TR=Prz_TR*0
 
 #-----End of updating field----
 
@@ -586,8 +582,8 @@ tvec=range(0.0,T,length=nt) # range object (no memory allocation)
 tvec=collect(tvec) # a vector
 
 #PML thickness in samples
-LPML_r=10
-LPML_z=10
+LPML_r=20
+LPML_z=20
 
 #======================
 Creating model
@@ -623,7 +619,8 @@ Point src geometry
 ================================#
 srcgeom=zeros(1,2) #(z,r)
 srcgeom[1,1]=(nz-1)*dz/2 #z meter
-srcgeom[1,2]=(nr-LPML_r+1)*dr #r meter
+#srcgeom[1,2]=(nr-LPML_r+1)*dr #r meter
+srcgeom[1,2]=1*dr #r meter
 src_index,src_dn=get_srcindex_monopole(srcgeom,dr,dz)
 
 
