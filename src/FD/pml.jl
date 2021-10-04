@@ -857,6 +857,7 @@ function PML_update_velocity_1st_TopRight_Por!(vr,vz,trr,tpp,tzz,trz,vfr,vfz,pf,
                     Prz_TR[LPML_z-k+1,j-nr+LPML_r]+
                     Prr_TR[LPML_z-k+1,j-nr+LPML_r]+
                     1.0/r_now*Qrp_TR[LPML_z-k+1,j-nr+LPML_r]) #elastic PML
+                 
                  dert_vfr=(vfr[k,j]-vfr_old)/dt
                  vr[k,j]=vr[k,j]-dt*rhof_av/rho_av*dert_vfr #poroelastic PML
              end #if k==1, j==nr
@@ -905,7 +906,8 @@ function PML_update_velocity_1st_TopRight_Por!(vr,vz,trr,tpp,tzz,trz,vfr,vfz,pf,
                 Pzz_TR[LPML_z-k+1,j-nr+LPML_r]+
                 Pzr_TR[LPML_z-k+1,j-nr+LPML_r]+
                 1.0/r_now*Qzp_TR[LPML_z-k+1,j-nr+LPML_r]) #elastic PML
-             dert_vfz=(vfz[k,j]-vfz_old)/dt
+             
+              dert_vfz=(vfz[k,j]-vfz_old)/dt
              vz[k,j]=vz[k,j]-dt*rhof_av/rho_av*dert_vfz #poroelastic PML
 
          end #k (z)
@@ -971,6 +973,7 @@ function PML_update_velocity_1st_BottomRight_Por!(vr,vz,trr,tpp,tzz,trz,vfr,vfz,
                     Prz_BR[k-nz+LPML_z,j-nr+LPML_r]+
                     Prr_BR[k-nz+LPML_z,j-nr+LPML_r]+
                     1.0/r_now*Qrp_BR[k-nz+LPML_z,j-nr+LPML_r]) #elastic PML
+                 
                  dert_vfr=(vfr[k,j]-vfr_old)/dt
                  vr[k,j]=vr[k,j]-dt*rhof_av/rho_av*dert_vfr #poroelastic PML
              end #j==nr
@@ -1020,6 +1023,7 @@ function PML_update_velocity_1st_BottomRight_Por!(vr,vz,trr,tpp,tzz,trz,vfr,vfz,
                     Pzz_BR[k-nz+LPML_z,j-nr+LPML_r]+
                     Pzr_BR[k-nz+LPML_z,j-nr+LPML_r]+
                     1.0/r_now*Qzp_BR[k-nz+LPML_z,j-nr+LPML_r]) #elastic PML
+                 
                  dert_vfz=(vfz[k,j]-vfz_old)/dt
                  vz[k,j]=vz[k,j]-dt*rhof_av/rho_av*dert_vfz  #poroelastic PML
              end #if k==nz
@@ -1381,6 +1385,11 @@ function PML_update_stress_1st_TopRight_Por!(vr,vz,trr,tpp,tzz,trz,vfr,vfz,pf,
                 vfr_av=0.5*(vfr_f1+vfr_b1)
 
 
+                 #---tmptmp
+                 #Rp_TR=Rp_TR*0
+                 #Rr_TR=Rr_TR*0
+                 #---tmptmp
+                 
                 trr_now=trr[k,j]
                 trr[k,j]=update_trr_1st_Por(trr_now,vr_f1,vr_b1,vz_f1,vz_b1,vr_av,
                        vfr_f1,vfr_b1,vfz_f1,vfz_b1,vfr_av,
@@ -1503,6 +1512,12 @@ function PML_update_stress_1st_BottomRight_Por!(vr,vz,trr,tpp,tzz,trz,vfr,vfz,pf
 
             vr_av=0.5*(vr_f1+vr_b1)
             vfr_av=0.5*(vfr_f1+vfr_b1)
+
+            #---tmptmp
+            # Rp_BR=Rp_BR*0
+            # Rr_BR=Rr_BR*0
+            #---tmptmp
+
 
             trr_now=trr[k,j]
             trr[k,j]=update_trr_1st_Por(trr_now,vr_f1,vr_b1,vz_f1,vz_b1,vr_av,
@@ -2037,7 +2052,8 @@ end
 function PML_update_memRS_1st_BottomRight_Por!(Rr_BR,Rp_BR,Rz_BR,Rrz_BR,Srz_BR,RrPE_BR,RpPE_BR,RzPE_BR,
     memB_vr,memB_vz,memB_vfr,memB_vfz,
     memR_vr,memR_vz,memR_vfr,memR_vfz,
-    vr,vz,vfr,vfz,nr,nz,dr,dz,dt,LPML_z,LPML_r,PML_Wz,PML_Wr,PML_IWr,PML_Wz2,PML_Wr2,PML_IWr2)
+    vr,vz,vfr,vfz,nr,nz,dr,dz,dt,LPML_z,LPML_r,
+    PML_Wz,PML_Wr,PML_IWr,PML_Wz2,PML_Wr2,PML_IWr2)
     #mod in Ou1st02tmp:
     #  LPML corresponds to the location of tii, and at tii(k=nz-LPML+1), OMEGA function is zero
     #  LPML corresponds to the location of tii, and at tii(j=nr-LPML+1), OMEGA function is zero
@@ -2177,7 +2193,7 @@ function PML_update_memRS_1st_BottomRight_Por!(Rr_BR,Rp_BR,Rz_BR,Rrz_BR,Srz_BR,R
 
         #caution k and j index (starts from 1)
         PML_Wr_now=PML_Wr[j-nr+LPML_r] #Check
-        RrPE_BR[k-nz+LPML_z,j-nr+LPML_r]=Rr_BR[k-nz+LPML_z,j-nr+LPML_r]*exp(-PML_Wr_now*dt)-
+        RrPE_BR[k-nz+LPML_z,j-nr+LPML_r]=RrPE_BR[k-nz+LPML_z,j-nr+LPML_r]*exp(-PML_Wr_now*dt)-
             1.0/2.0*PML_Wr_now*dt*(
             exp(-PML_Wr_now*dt)*drvfr_prev+drvfr_now)
 

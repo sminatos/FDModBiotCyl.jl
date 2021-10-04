@@ -402,6 +402,32 @@ PML_update_memRS!(Rz_T,Srz_T,RzPE_T,
                   memR_vr,memR_vz,memR_vfr,memR_vfz,
                   vr,vz,vfr,vfz,nr,nz,dr,dz,dt,LPML_z,LPML_r,PML_Wz,PML_Wr,PML_IWr,PML_Wz2,PML_Wr2,PML_IWr2)
 
+#tmptmp
+#Rr_R=Rr_R*0
+#Rp_R=Rp_R*0
+#Rrz_R=Rrz_R*0
+#RrPE_R=RrPE_R*0
+#RpPE_R=RpPE_R*0
+
+#--killing r-stretching
+#Rr_BR=Rr_BR*0 #this is the culprit
+Rr_BR[1,:]=Rr_R[end,:]
+Rr_BR[2,:]=Rr_R[end,:]
+Rr_BR[3,:]=Rr_R[end,:]
+Rr_BR[4,:]=Rr_R[end,:]
+#Rp_BR=Rp_BR*0
+#Rz_BR
+#Rrz_BR=Rrz_BR*0
+#Srz_BR,
+
+#Rr_TR=Rr_TR*0
+
+#--killing z-stretching
+Rz_BR=Rz_BR*0
+Rrz_BR=Rrz_BR*0
+Rz_TR=Rz_TR*0
+Rrz_TR=Rrz_TR*0
+
 #--src injection (velocity)
 #srcamp=src_func[ii]
 #srcapply!(vz,src_index,src_dn,srcamp)
@@ -432,6 +458,7 @@ PML_update_stress!(vr,vz,trr,tpp,tzz,trz,vfr,vfz,pf,
                   Rr_TR,Rp_TR,Rz_TR,Rrz_TR,Srz_TR,RrPE_TR,RpPE_TR,RzPE_TR,
                   Rr_BR,Rp_BR,Rz_BR,Rrz_BR,Srz_BR,RrPE_BR,RpPE_BR,RzPE_BR,
                   LPML_z,LPML_r)
+
 
 # Making sure RightBC for stress (zero values are trp and trz)
 ApplyBCRight_stress!(vr,vz, #Use with flag_zero=1 (see ApplyBCRight_stress1D01)
@@ -472,6 +499,19 @@ PML_update_memPQ!(Prz_T,Pzz_T,PzzPE_T,
                   memR_trr,memR_tpp,memR_tzz,memR_trz,memR_pf,
                   trr,tpp,tzz,trz,pf,nr,nz,dr,dz,dt,LPML_z,LPML_r,PML_Wz,PML_Wr,PML_IWr,PML_Wz2,PML_Wr2,PML_IWr2)
 
+#--tmptmp
+#Prr_R=Prr_R*0
+#Qrp_R=Qrp_R*0
+#Pzr_R=Pzr_R*0
+#Qzp_R=Qzp_R*0
+#PrrPE_R=PrrPE_R*0
+
+#killing z-stretching
+Pzz_BR=Pzz_BR*0
+Prz_BR=Prz_BR*0
+Pzz_TR=Pzz_TR*0
+Prz_TR=Prz_TR*0
+
 #-----End of updating field----
 
 #println("receiver")
@@ -490,9 +530,19 @@ getRecData_from_index!(vz,rec_vz,index_allrec_vz,nrec,ii)
 
 #plt1=plot(Rz_BR[2,:])
 #plot!(Rz_TR[2,:])
-plt1=plot(Rr_BR[1,:])
-plot!(Rr_TR[1,:])
-display(plot(plt1))
+#plt1=plot(Rr_BR[1,:])
+#plot!(Rr_TR[1,:])
+#display(plot(plt1))
+
+#plt1=plot(Rr_BR[1,:])
+#plot!(Rr_TR[1,:])
+#plt1=plot(Rr_R[1,:])
+#plot!(Rr_R[end,:])
+#plot!(Rr_TR[1,:])
+#plt1=plot(Rr_R[end,:])
+#plot!(Rr_BR[1,:])
+
+#display(plot(plt1))
 
 #--Snapshots
 #println("check snap")
@@ -505,12 +555,9 @@ if (length(check_snap)!=0)
 
 #   drawsnap(snapshots_vz[:,:,cnt_snap],nz,dz,nr,dr,
 #            LPML_r,LPML_z)
-#   drawsnap(snapshots_vz[:,2:end,cnt_snap],nz,dz,nr-1,dr,
-#            LPML_r,LPML_z)
+   drawsnap(snapshots_vz[:,2:end,cnt_snap],nz,dz,nr-1,dr,
+            LPML_r,LPML_z)
 
-#   plt1=plot(Pzz_B[:,10])
-#   plot!(Pzz_T[:,10])
-#   display(plot(plt1))
 end
 
 end #i Time
