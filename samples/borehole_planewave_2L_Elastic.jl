@@ -358,7 +358,7 @@ PML_update_memRS!(Rz_T,Srz_T,RzPE_T,
                   Rr_TR,Rp_TR,Rz_TR,Rrz_TR,Srz_TR,RrPE_TR,RpPE_TR,RzPE_TR,
                   Rr_BR,Rp_BR,Rz_BR,Rrz_BR,Srz_BR,RrPE_BR,RpPE_BR,RzPE_BR,
                   memT_vr,memT_vz,memT_vfr,memT_vfz,
-                  memB_vr,memB_vz,memT_vfr,memT_vfz,
+                  memB_vr,memB_vz,memB_vfr,memB_vfz,
                   memR_vr,memR_vz,memR_vfr,memR_vfz,
                   vr,vz,vfr,vfz,nr,nz,dr,dz,dt,LPML_z,LPML_r,PML_Wz,PML_Wr,PML_IWr,PML_Wz2,PML_Wr2,PML_IWr2)
 

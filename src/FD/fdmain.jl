@@ -533,7 +533,8 @@ for k=LPML_z+1:nz-LPML_z #caution !
         vfz[k,j]=vfz_now
 
         vz[k,j]=vz_now+dt/rho_av*(A-rhof_av*dert_vfz)
-        #----END THIS PART NEEDS CONSIDERATION FOR Poroelasticity
+#        vz[k,j]=vz_now+dt/rho_av*(4trz_f1/dr+dztzz)
+    #----END THIS PART NEEDS CONSIDERATION FOR Poroelasticity
 
 end #k (z)
 
@@ -602,8 +603,8 @@ for k=LPML_z+1:nz-LPML_z
         G=Gmat[k,j] #be careful
         M=Mmat[k,j] #be careful
 
-        #Special treatment @r=0
-        #l'Hopital's rule
+        # Special treatment @r=0
+        # l'Hopital's rule
 
         drvr=(vr_f1-vr_b1)
         drvr=drvr/dr
@@ -617,42 +618,24 @@ for k=LPML_z+1:nz-LPML_z
 
 
         trr[k,j]=trr[k,j]+dt*(
-                             +(H-2.0*G)*(drvr+dzvz)
+                             +(H-2G)*(drvr+dzvz)
                              +H*drvr
-                             +C*(2.0*drvfr+dzvfz)
+                             +C*(2drvfr+dzvfz)
                              )
         tpp[k,j]=tpp[k,j]+dt*(
-                            +(H-2.0*G)*(drvr+dzvz)
+                            +(H-2G)*(drvr+dzvz)
                             +H*drvr
-                            +C*(2.0*drvfr+dzvfz)
+                            +C*(2drvfr+dzvfz)
                             )
         tzz[k,j]=tzz[k,j]+dt*(
-                            +(H-2.0*G)*2.0*drvr
+                            +(H-2G)*2drvr
                             +H*dzvz
-                            +C*(2.0*drvfr+dzvfz)
+                            +C*(2drvfr+dzvfz)
                             )
         pf[k,j]=pf[k,j]+dt*(
-                            -C*(2.0*drvr+dzvz)
-                            -M*(2.0*drvfr+dzvfz)
+                            -C*(2drvr+dzvz)
+                            -M*(2drvfr+dzvfz)
                             )
-
-    #==tmptmptmptmp
-        trr[k,j]=trr[k,j]+dt*(
-                             +(H-2.0*G)*(0+dzvz)
-                             +H*drvr
-                             +C*(2.0*drvfr+dzvfz)
-                             )
-        tpp[k,j]=tpp[k,j]+dt*(
-                            +(H-2.0*G)*(drvr+dzvz)
-                            +H*0
-                            +C*(2.0*drvfr+dzvfz)
-                            )
-        tzz[k,j]=tzz[k,j]+dt*(
-                            +(H-2.0*G)*drvr
-                            +H*dzvz
-                            +C*(2.0*drvfr+dzvfz)
-                            )
-    ==#
     
         #---trp and trz not on left edge!
         r_now=(j-1)*dr+dr/2.0 #for trp,trz Mittet

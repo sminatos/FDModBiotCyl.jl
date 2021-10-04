@@ -94,8 +94,10 @@ function makemodel_homogeneous_Elastic()
 # homogeneous elastic media
 
 #Model size
-   nr=251 #samples
-   nz=351 #samples
+#   nr=251 #samples
+#   nz=351 #samples
+   nr=51 #samples
+   nz=101 #samples
    dr=0.5 #meter
    dz=0.5 #meter
 
@@ -155,7 +157,7 @@ function makemodel_homogeneous_Elastic()
    ==========================#
    Flag_E=zeros(nz,nr)
    Vp1_elastic=2500.0 #Or, Specify K_elastic
-   Vs1_elastic=2000.0
+   Vs1_elastic=2000.0*0
    Rho1_elastic=2500.0
 
    G_elastic=Vs1_elastic^2*Rho1_elastic
@@ -321,8 +323,8 @@ vfz_old=zeros(nz,nr)
 #    G,nr,nz,dr,dz,dt)
 
 #error()
-@showprogress for ii=1:nt
-#@showprogress for ii=1:21
+#@showprogress for ii=1:nt
+@showprogress for ii=1:201
 #for ii=1:1
 
 #@show Pzz_T[1,10],Srz_T[1,10]
@@ -396,13 +398,13 @@ PML_update_memRS!(Rz_T,Srz_T,RzPE_T,
                   Rr_TR,Rp_TR,Rz_TR,Rrz_TR,Srz_TR,RrPE_TR,RpPE_TR,RzPE_TR,
                   Rr_BR,Rp_BR,Rz_BR,Rrz_BR,Srz_BR,RrPE_BR,RpPE_BR,RzPE_BR,
                   memT_vr,memT_vz,memT_vfr,memT_vfz,
-                  memB_vr,memB_vz,memT_vfr,memT_vfz,
+                  memB_vr,memB_vz,memB_vfr,memB_vfz,
                   memR_vr,memR_vz,memR_vfr,memR_vfz,
                   vr,vz,vfr,vfz,nr,nz,dr,dz,dt,LPML_z,LPML_r,PML_Wz,PML_Wr,PML_IWr,PML_Wz2,PML_Wr2,PML_IWr2)
 
 #--src injection (velocity)
-srcamp=src_func[ii]
-srcapply!(vz,src_index,src_dn,srcamp)
+#srcamp=src_func[ii]
+#srcapply!(vz,src_index,src_dn,srcamp)
 #srcapply!(vr,src_index,src_dn,srcamp)
 
 #----Time at (ii-1)*dt+dt/2----(updating stress)---
@@ -447,10 +449,11 @@ ApplyBCLeft_stress!(vr,vz,trr,tpp,tzz,trz,vfr,vfz,pf,
 #return
 
 #--src injection (stress:monopole src)
-#srcamp=-src_func[ii]
-#srcapply!(tzz,src_index,src_dn,srcamp)
-#srcapply!(trr,src_index,src_dn,srcamp)
-#srcapply!(tpp,src_index,src_dn,srcamp)
+srcamp=-src_func[ii]
+#srcapply!(trz,src_index,src_dn,srcamp)
+srcapply!(tzz,src_index,src_dn,srcamp)
+srcapply!(trr,src_index,src_dn,srcamp)
+srcapply!(tpp,src_index,src_dn,srcamp)
 
 
 #---Additional BC when Flag_Acoustic/Flag_Elastic
@@ -478,6 +481,18 @@ getRecData_from_index!(vz,rec_vz,index_allrec_vz,nrec,ii)
 #getRecData_from_index!(trr,rec_tii,index_allrec_tii,nrec,ii)
 
 
+#plt1=plot(Pzz_B[:,1])
+#plot!(-Pzz_T[2:end,1])
+#plt1=plot(Rz_B[:,1])
+#plot!(Rz_T[:,1])
+#plt1=plot(tzz[1:45,1])
+#plot!(reverse(tzz[nz-45:nz,1],1))
+
+#plt1=plot(Rz_BR[2,:])
+#plot!(Rz_TR[2,:])
+plt1=plot(Rr_BR[1,:])
+plot!(Rr_TR[1,:])
+display(plot(plt1))
 
 #--Snapshots
 #println("check snap")
@@ -488,9 +503,14 @@ if (length(check_snap)!=0)
    get_snapshots!(snapshots_vr,snapshots_vz,cnt_snap,vfr,vz,nr,nz)
    get_snapshots_t!(snapshots_trr,cnt_snap,pf,nr,nz)
 
-   drawsnap(snapshots_vz[:,:,cnt_snap],nz,dz,nr,dr,
-            LPML_r,LPML_z)
+#   drawsnap(snapshots_vz[:,:,cnt_snap],nz,dz,nr,dr,
+#            LPML_r,LPML_z)
+#   drawsnap(snapshots_vz[:,2:end,cnt_snap],nz,dz,nr-1,dr,
+#            LPML_r,LPML_z)
 
+#   plt1=plot(Pzz_B[:,10])
+#   plot!(Pzz_T[:,10])
+#   display(plot(plt1))
 end
 
 end #i Time
@@ -513,13 +533,14 @@ const T=(nt-1)*dt
 ==#
 dt=1E-4
 nt=1001
+#nt=101
 T=(nt-1)*dt
 tvec=range(0.0,T,length=nt) # range object (no memory allocation)
 tvec=collect(tvec) # a vector
 
 #PML thickness in samples
-LPML_r=20
-LPML_z=20
+LPML_r=10
+LPML_z=10
 
 #======================
 Creating model
@@ -555,7 +576,7 @@ Point src geometry
 ================================#
 srcgeom=zeros(1,2) #(z,r)
 srcgeom[1,1]=(nz-1)*dz/2 #z meter
-srcgeom[1,2]=0*dr #r meter
+srcgeom[1,2]=(nr-LPML_r+1)*dr #r meter
 src_index,src_dn=get_srcindex_monopole(srcgeom,dr,dz)
 
 
@@ -588,7 +609,7 @@ rec_vr,rec_vz,index_allrec_vr,index_allrec_vz=init_receiver_geophone(recgeom,nre
 Snapshot settings
 ==============================#
 nskip,snapshots_trr,snapshots_vr,snapshots_vz,
-nsnap,itvec_snap=init_snap(nt,nz,nr,100)
+nsnap,itvec_snap=init_snap(nt,nz,nr,30)
 #error()
 
 #==============================
