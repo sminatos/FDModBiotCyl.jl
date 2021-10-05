@@ -620,8 +620,11 @@ Point src geometry
 srcgeom=zeros(1,2) #(z,r)
 srcgeom[1,1]=(nz-1)*dz/2 #z meter
 #srcgeom[1,2]=(nr-LPML_r+1)*dr #r meter
-srcgeom[1,2]=1*dr #r meter
-src_index,src_dn=get_srcindex_monopole(srcgeom,dr,dz)
+srcgeom[1,2]=0*dr #r meter
+#Gaussian point src
+wsize=3 #window size (odd number)
+wsigma=1 #std
+src_index,src_dn=get_srcindex_pGauss(srcgeom,dr,dz,wsize,wsigma)
 
 
 #error()

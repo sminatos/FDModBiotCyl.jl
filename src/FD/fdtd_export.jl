@@ -38,7 +38,8 @@ export  init_fields_Por,
       #---sources (sources.jl)-----
         myricker2,
         srcapply!,
-        get_srcindex_monopole
+        get_srcindex_monopole,
+        get_srcindex_pGauss
 
 
   include("./fdmain.jl")

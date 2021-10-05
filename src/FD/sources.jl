@@ -66,3 +66,75 @@ function srcapply!(paramarray,src_index,src_dn,srcamp)
     end
 end
 
+#-----------------------------------
+# converting src geometry to
+# index numbers of a pressure grid
+# Rubust point src by Gaussian shape
+#-----------------------------------
+function get_srcindex_pGauss(srcgeom,dr,dz,windowsize,sigma)
+    #window size->odd
+    #src index and amplitudes
+    #--point input
+    izsrc_ref=Int(ceil(srcgeom[1,1]/dz)+1)
+    irsrc_ref=Int(ceil(srcgeom[1,2]/dr)+1)
+
+    Gauss_Wmat=Gaussian_filter(windowsize,sigma)
+
+    halfw=Int(round((windowsize-1)/2))
+
+    #check if gaussian window exceeds at left boundary
+    if(irsrc_ref-halfw < 1)
+        irvec_1row=collect(range(irsrc_ref-halfw,irsrc_ref+halfw,length=windowsize))
+        ir1=findall(x->x==1,irvec_1row)
+        
+        izvec_1col=collect(range(izsrc_ref-halfw,izsrc_ref+halfw,length=windowsize))
+        izvec_mcol=repeat(izvec_1col,outer=windowsize-ir1[1]+1)
+
+        irvec_1row=collect(range(1,irsrc_ref+halfw,length=windowsize-ir1[1]+1))
+        irvec_mcol=repeat(irvec_1row,inner=windowsize)
+
+        src_index=zeros(2,windowsize*(windowsize-ir1[1]+1))
+        src_index[1,:]=izvec_mcol[:]
+        src_index[2,:]=irvec_mcol[:]
+
+        src_dn=Gauss_Wmat[:,1:ir1[1]]
+        src_dn=src_dn[:]
+    else
+
+        src_index=zeros(2,windowsize^2)
+
+        izvec_1col=collect(range(izsrc_ref-halfw,izsrc_ref+halfw,length=windowsize))
+        izvec_mcol=repeat(izvec_1col,outer=windowsize)
+
+        irvec_1row=collect(range(irsrc_ref-halfw,irsrc_ref+halfw,length=windowsize))
+        irvec_mcol=repeat(irvec_1row,inner=windowsize)
+
+        src_index[1,:]=izvec_mcol[:]
+        src_index[2,:]=irvec_mcol[:]
+        
+        
+        src_dn=Gauss_Wmat[:]
+    end
+
+
+    src_index=map(x->Int(x),src_index)
+    return src_index,src_dn
+end
+
+#Gaussian filter
+function Gaussian_filter(wsize, sigma)
+#wsize should be odd number
+    gauss=zeros(wsize,wsize); #2D filter matrix
+    for i=-round((wsize-1)/2):1:round((wsize-1)/2)
+        for j=-round((wsize-1)/2):1:round((wsize-1)/2)
+            i0=(wsize+1)/2; 
+            j0=(wsize+1)/2; 
+            i1=Int(round(i+i0)); 
+            j1=Int(round(j+j0)); 
+            gauss[j1,i1]=exp(-((i1-i0)^2+(j1-j0)^2)/(2*sigma^2));
+        end
+    end
+gauss=gauss/sum(gauss[:]);
+return gauss
+end
+
