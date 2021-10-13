@@ -9,5 +9,5 @@ test.8ht
 11				*number of receivers
 0.0025				*receiver offset spacing
 1				*source type (0=TR, 1=Ricker)
-5				*F0 (center freq,kHz) 
+8				*F0 (center freq,kHz) 
 0.0            			* alpha (only used with TR source)

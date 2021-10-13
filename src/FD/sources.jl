@@ -74,6 +74,7 @@ end
 function get_srcindex_pGauss(srcgeom,dr,dz,windowsize,sigma)
     #window size->odd
     #src index and amplitudes
+    #Correct scaling factor (as a dirac delta in cylindrical coordinate) only when source is located around r=0
     #--point input
     izsrc_ref=Int(ceil(srcgeom[1,1]/dz)+1)
     irsrc_ref=Int(ceil(srcgeom[1,2]/dr)+1)
@@ -86,7 +87,7 @@ function get_srcindex_pGauss(srcgeom,dr,dz,windowsize,sigma)
     if(irsrc_ref-halfw < 1)
         irvec_1row=collect(range(irsrc_ref-halfw,irsrc_ref+halfw,length=windowsize))
         ir1=findall(x->x==1,irvec_1row)
-        
+
         izvec_1col=collect(range(izsrc_ref-halfw,izsrc_ref+halfw,length=windowsize))
         izvec_mcol=repeat(izvec_1col,outer=windowsize-ir1[1]+1)
 
@@ -97,7 +98,13 @@ function get_srcindex_pGauss(srcgeom,dr,dz,windowsize,sigma)
         src_index[1,:]=izvec_mcol[:]
         src_index[2,:]=irvec_mcol[:]
 
-        src_dn=Gauss_Wmat[:,1:ir1[1]]
+        #extracting symmetric components around r=0
+        Wmat=Gauss_Wmat[:,ir1[1]:windowsize]
+        #evaluating volume integral to get scaing factor
+        V=Check_VolumeIntegral(Wmat,dr,dz)
+        #saling-corrected Gaussian
+        src_dn=Wmat/V
+
         src_dn=src_dn[:]
     else
 
@@ -111,8 +118,8 @@ function get_srcindex_pGauss(srcgeom,dr,dz,windowsize,sigma)
 
         src_index[1,:]=izvec_mcol[:]
         src_index[2,:]=irvec_mcol[:]
-        
-        
+
+        #Note: scaling factor does not represent a dirac delta function
         src_dn=Gauss_Wmat[:]
     end
 
@@ -127,10 +134,10 @@ function Gaussian_filter(wsize, sigma)
     gauss=zeros(wsize,wsize); #2D filter matrix
     for i=-round((wsize-1)/2):1:round((wsize-1)/2)
         for j=-round((wsize-1)/2):1:round((wsize-1)/2)
-            i0=(wsize+1)/2; 
-            j0=(wsize+1)/2; 
-            i1=Int(round(i+i0)); 
-            j1=Int(round(j+j0)); 
+            i0=(wsize+1)/2;
+            j0=(wsize+1)/2;
+            i1=Int(round(i+i0));
+            j1=Int(round(j+j0));
             gauss[j1,i1]=exp(-((i1-i0)^2+(j1-j0)^2)/(2*sigma^2));
         end
     end
@@ -138,3 +145,25 @@ gauss=gauss/sum(gauss[:]);
 return gauss
 end
 
+
+function Check_VolumeIntegral(Wmat,dr,dz)
+    #evaluate volume integral cylindrical coordinate
+    #V=2pi int int r dr dz f(r,z)
+    #assumes (Gaussian) matrices symmetrical around r=0
+    # in case of a scalar at r=0, it results in pi*dz*dr^2*1/4
+    wsize_z,wsize_r=size(Wmat)
+
+    V=0.
+    for iz=1:wsize_z
+        tmpvec_r=Wmat[iz,:]
+        for ir=1:wsize_r
+            if (ir==1)
+                V=V+pi*dz*tmpvec_r[ir]*dr^2/4
+            else
+                V=V+pi*dz*tmpvec_r[ir]*dr^2/4*(ir-1)*8
+            end
+        end
+    end
+
+    return V
+end

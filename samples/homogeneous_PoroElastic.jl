@@ -79,7 +79,7 @@ end
 #=========================
 Creating homogeneous model
 =========================#
-function makemodel_homogeneous_Elastic()
+function makemodel_homogeneous_PoroElastic()
 #Nessesary input matrices to main loop function are:
 #Rho: Bulk density
 #Rhof: Fluid density
@@ -91,16 +91,19 @@ function makemodel_homogeneous_Elastic()
 #ir_wall: grid number in r direction where a borehole wall starts (single value)
 #
 # This function creates above input paramers assuming a
-# homogeneous elastic media
+# homogeneous poroelastic media
 
 #Model size
+#==
    nr=251 #samples
    nz=351 #samples
-#   nr=51 #samples
-#   nz=101 #samples
    dr=0.5 #meter
    dz=0.5 #meter
-
+==#
+   nr=501 #samples
+   nz=701 #samples
+   dr=0.25 #meter
+   dz=0.25 #meter
 
    #==============================================
    Initializing poroelastic parameters (Sidler's)
@@ -153,26 +156,28 @@ function makemodel_homogeneous_Elastic()
    ir_wall=0
 
    #==========================
-   Homogeneous Elastic model
+   Homogeneous PoroElastic model
    ==========================#
+   Kappa0[:,:]=ones(nz,nr)*1*9.869*10^(-13) #m^2
+   Phi[:,:]=ones(nz,nr)*0.3
+   #--Tortuosity factor from Ou
+   m_Ou=8.0 #
+   alpha_inf_Ou=3.0 #tortuosity
+   Tot=ones(nz,nr)*(1+2/m_Ou)*alpha_inf_Ou
+   #-Solid parameters from dry_Vp,dry_Vs,grain_density, and grain_bulkmodulus (Table 1 of Ou2019)
+   Vp_dry=2170.0
+   Vs_dry=1360.0
+   Rhos[:,:]=ones(nz,nr)*3143.0
+   Ks[:,:]=ones(nz,nr)*5*1E10
+   #
+   Rho_dry=(ones(nz,nr)-Phi).*Rhos
+   G[:,:]=Vs_dry^2*Rho_dry[:,:]
+   Km[:,:]=Vp_dry^2*Rho_dry[:,:]-4/3*G[:,:]
+   Rho=(ones(nz,nr)-Phi).*Rhos+Phi.*Rhof
+
+
    Flag_E=zeros(nz,nr)
-   Vp1_elastic=2500.0 #Or, Specify K_elastic
-   Vs1_elastic=2000.0
-   Rho1_elastic=2000.0
 
-   G_elastic=Vs1_elastic^2*Rho1_elastic
-   K_elastic=Vp1_elastic^2*Rho1_elastic-4/3*G_elastic #Activate here if you have specified Vp_elastic
-
-   Flag_E=ones(nz,nr)
-   Rho=Rho1_elastic*ones(nz,nr) #Rho=Rho_elastic
-#       Rhof[iz,ir_wall+1:end]=ones(nr-ir_wall)*Rho1_elastic #Rhof=Rho_elastic
-   G=ones(nz,nr)*G_elastic #G=Gs (Ou's)
-   #--
-#   Phi[iz,ir_wall+1:end]=ones(nr-ir_wall)*0.0 #Phi=0
-   Km=ones(nz,nr)*K_elastic #Km
-   Ks=ones(nz,nr)*K_elastic #Ks=Km (-> M=Inf, Ou's)
-   #--
-#   Kappa0[iz,ir_wall+1:end]=ones(nr-ir_wall)*0.0 #k0=0 (-> D1=D2=Inf, Ou's)
 
    #=====================================================
    Converting Sidler's poroelastic parameters into Ou's
@@ -222,7 +227,41 @@ function drawsnap(Data1,nz,dz,nr,dr,LPML_r,LPML_z)
 
 end
 
+#=========================
+Computing Vp_sat, Vs_sat
+from poroelastic properties
+=========================#
+function Gassman(vp_dry,vs_dry,rhos,phi,Ks)
+#   vp_dry=5170; #dry vp
+#   vs_dry=3198; #dry vs
+#   rhos=3143; #grain density
+#   phi=0.3; #porosity
+#   Ks=10E10; #grain bulk modulus
+   Kf=1000*1500^2; #fluid bulk modulus
+   Rhof=1000;
 
+   rho_dry=(1-phi)*rhos;
+   rho_bulk=(1-phi)*rhos+phi*Rhof;
+   G=vs_dry^2*rho_dry;
+   K_dry=vp_dry^2*rho_dry-4/3*G;
+   alpha=1-K_dry./Ks;
+   M=( (alpha-phi)./Ks+phi./Kf ).^(-1);
+   C=M.*alpha;
+   H=K_dry+4/3*G+M.*alpha.^2; #H=K_undrained+4/3*G (see 2.6c, Guan2011)
+
+
+   #Gassman K_undrained=alpha^2*M+K_dry (see Guan2011)
+   #Gassman K_sat=K_undrained? --> YES!
+   Ksat=K_dry+(1-K_dry/Ks)^2/(
+       phi/Kf+(1-phi)/Ks-K_dry/Ks^2);
+   K_undrained=K_dry+alpha^2*M;
+   Vp0=sqrt(H/rho_bulk); #->sqrt((K_undrained+4/3G)/rho_bulk)
+   Vs0=sqrt(G/rho_bulk); #->sqrt((K_undrained+4/3G)/rho_bulk)
+   #Skepmton Coefficient
+   B=(1/K_dry-1/Ks)/(1/K_dry-1/Ks+phi*(1/Kf-1/Ks));
+
+   return Vp0,Vs0,rho_bulk
+end
 
 #=========================
 Green's function
@@ -287,7 +326,7 @@ function main_loop!(nr,nz,dr,dz,Rho,Rhof,M,C,H,G,D1,D2,dt,nt,T,
    ir_wall,
    src_index,src_dn,
    Flag_AC,Flag_E,
-   nrec,rec_vr,rec_vz,index_allrec_vr,index_allrec_vz,
+   nrec,rec_vr,rec_vz,rec_pf,index_allrec_vr,index_allrec_vz,index_allrec_pf,
    LPML_r,LPML_z,PML_Wr,PML_Wz,PML_IWr,PML_Wr2,PML_Wz2,PML_IWr2,
    snapshots_vr,snapshots_vz,snapshots_trr,nsnap,itvec_snap,nskip)
 
@@ -402,33 +441,13 @@ PML_update_memRS!(Rz_T,Srz_T,RzPE_T,
                   memR_vr,memR_vz,memR_vfr,memR_vfz,
                   vr,vz,vfr,vfz,nr,nz,dr,dz,dt,LPML_z,LPML_r,PML_Wz,PML_Wr,PML_IWr,PML_Wz2,PML_Wr2,PML_IWr2)
 
-#tmptmp
-#Rr_R=Rr_R*0
-#Rp_R=Rp_R*0
-#Rrz_R=Rrz_R*0
-#RrPE_R=RrPE_R*0
-#RpPE_R=RpPE_R*0
-
-#--killing r-stretching
-#Rr_BR=Rr_BR*0 #this is the culprit
-#Rp_BR=Rp_BR*0
-#Rz_BR
-#Rrz_BR=Rrz_BR*0
-#Srz_BR,
-
-#Rr_TR=Rr_TR*0
-
-#--killing z-stretching
-#Rz_BR=Rz_BR*0
-#Rrz_BR=Rrz_BR*0
-#Rz_TR=Rz_TR*0
-#Rrz_TR=Rrz_TR*0
 
 #--src injection (velocity)
-srcamp=src_func[ii]
-srcamp=srcamp*dt/Rho[1,1]
-srcapply!(vz,src_index,src_dn,srcamp)
+#srcamp=src_func[ii]
+#srcapply!(vz,src_index,src_dn,srcamp)
 #srcapply!(vr,src_index,src_dn,srcamp)
+#srcapply!(vfz,src_index,src_dn,srcamp)
+#srcapply!(vfr,src_index,src_dn,srcamp)
 
 #----Time at (ii-1)*dt+dt/2----(updating stress)---
 
@@ -474,10 +493,11 @@ ApplyBCLeft_stress!(vr,vz,trr,tpp,tzz,trz,vfr,vfz,pf,
 
 #--src injection (stress:monopole src)
 #srcamp=-src_func[ii]
-#srcapply!(trz,src_index,src_dn,srcamp)
 #srcapply!(tzz,src_index,src_dn,srcamp)
 #srcapply!(trr,src_index,src_dn,srcamp)
 #srcapply!(tpp,src_index,src_dn,srcamp)
+srcamp=src_func[ii]
+srcapply!(pf,src_index,src_dn,srcamp)
 
 
 #---Additional BC when Flag_Acoustic/Flag_Elastic
@@ -496,18 +516,6 @@ PML_update_memPQ!(Prz_T,Pzz_T,PzzPE_T,
                   memR_trr,memR_tpp,memR_tzz,memR_trz,memR_pf,
                   trr,tpp,tzz,trz,pf,nr,nz,dr,dz,dt,LPML_z,LPML_r,PML_Wz,PML_Wr,PML_IWr,PML_Wz2,PML_Wr2,PML_IWr2)
 
-#--tmptmp
-#Prr_R=Prr_R*0
-#Qrp_R=Qrp_R*0
-#Pzr_R=Pzr_R*0
-#Qzp_R=Qzp_R*0
-#PrrPE_R=PrrPE_R*0
-
-#killing z-stretching
-#Pzz_BR=Pzz_BR*0
-#Prz_BR=Prz_BR*0
-#Pzz_TR=Pzz_TR*0
-#Prz_TR=Prz_TR*0
 
 #-----End of updating field----
 
@@ -516,30 +524,9 @@ PML_update_memPQ!(Prz_T,Pzz_T,PzzPE_T,
 getRecData_from_index!(vr,rec_vr,index_allrec_vr,nrec,ii)
 getRecData_from_index!(vz,rec_vz,index_allrec_vz,nrec,ii)
 #getRecData_from_index!(trr,rec_tii,index_allrec_tii,nrec,ii)
+getRecData_from_index!(pf,rec_pf,index_allrec_pf,nrec,ii)
 
 
-#plt1=plot(Pzz_B[:,1])
-#plot!(-Pzz_T[2:end,1])
-#plt1=plot(Rz_B[:,1])
-#plot!(Rz_T[:,1])
-#plt1=plot(tzz[1:45,1])
-#plot!(reverse(tzz[nz-45:nz,1],1))
-
-#plt1=plot(Rz_BR[2,:])
-#plot!(Rz_TR[2,:])
-#plt1=plot(Rr_BR[1,:])
-#plot!(Rr_TR[1,:])
-#display(plot(plt1))
-
-#plt1=plot(Rr_BR[1,:])
-#plot!(Rr_TR[1,:])
-#plt1=plot(Rr_R[1,:])
-#plot!(Rr_R[end,:])
-#plot!(Rr_TR[1,:])
-#plt1=plot(Rr_R[end,:])
-#plot!(Rr_BR[1,:])
-
-#display(plot(plt1))
 
 #--Snapshots
 #println("check snap")
@@ -547,10 +534,10 @@ check_snap=findall(x -> x==ii,itvec_snap)
 if (length(check_snap)!=0)
    println("ii=",ii)
    cnt_snap=Int(check_snap[1])
-   get_snapshots!(snapshots_vr,snapshots_vz,cnt_snap,vfr,vz,nr,nz)
+   get_snapshots!(snapshots_vr,snapshots_vz,cnt_snap,vr,vz,nr,nz)
    get_snapshots_t!(snapshots_trr,cnt_snap,pf,nr,nz)
 
-#   drawsnap(snapshots_vz[:,:,cnt_snap],nz,dz,nr,dr,
+#   drawsnap(snapshots_trr[:,:,cnt_snap],nz,dz,nr,dr,
 #            LPML_r,LPML_z)
    drawsnap(snapshots_vz[:,2:end,cnt_snap],nz,dz,nr-1,dr,
             LPML_r,LPML_z)
@@ -575,21 +562,23 @@ const dt=0.125E-5
 const nt=16001
 const T=(nt-1)*dt
 ==#
-dt=1E-4
-nt=751
-#nt=101
+#dt=1E-4
+#nt=1001
+dt=0.5E-4
+nt=2001
+
 T=(nt-1)*dt
 tvec=range(0.0,T,length=nt) # range object (no memory allocation)
 tvec=collect(tvec) # a vector
 
 #PML thickness in samples
-LPML_r=20
-LPML_z=20
+LPML_r=30
+LPML_z=30
 
 #======================
 Creating model
 ======================#
-nr,nz,dr,dz,Rho,Rhof,M,C,H,G,D1,D2,Flag_AC,Flag_E,ir_wall=makemodel_homogeneous_Elastic()
+nr,nz,dr,dz,Rho,Rhof,M,C,H,G,D1,D2,Flag_AC,Flag_E,ir_wall=makemodel_homogeneous_PoroElastic()
 drawmodel(H,nz,dz,nr,dr,LPML_r,LPML_z)
 #error()
 
@@ -621,14 +610,12 @@ Point src geometry
 srcgeom=zeros(1,2) #(z,r)
 srcgeom[1,1]=(nz-1)*dz/2 #z meter
 #srcgeom[1,2]=(nr-LPML_r+1)*dr #r meter
-srcgeom[1,2]=0*dr #r meter.
+srcgeom[1,2]=0*dr #r meter
 #Gaussian point src
-wsize=7 #window size (odd number)
+wsize=3 #window size (odd number)
 wsigma=1 #std
 src_index,src_dn=get_srcindex_pGauss(srcgeom,dr,dz,wsize,wsigma)
-plot(src_index[1,:],src_index[2,:],src_dn[:],marker=:circle,seriestype=:scatter,zcolor=src_dn[:],camera=(90,90))
 
-#src_index,src_dn=get_srcindex_monopole(srcgeom,dr,dz)
 
 #error()
 #==============================
@@ -652,6 +639,7 @@ for irec=1:nrec
    recgeom[irec,2]=25.0
 end
 rec_vr,rec_vz,index_allrec_vr,index_allrec_vz=init_receiver_geophone(recgeom,nrec,dr,dz,nr,nz,nt)
+rec_pf,index_allrec_pf=init_receiver_hydrophone(recgeom,nrec,dr,dz,nr,nz,nt)
 
 
 
@@ -672,7 +660,7 @@ main_loop!(nr,nz,dr,dz,Rho,Rhof,M,C,H,G,D1,D2,dt,nt,T,
    ir_wall,
    src_index,src_dn,
    Flag_AC,Flag_E,
-   nrec,rec_vr,rec_vz,index_allrec_vr,index_allrec_vz,
+   nrec,rec_vr,rec_vz,rec_pf,index_allrec_vr,index_allrec_vz,index_allrec_pf,
    LPML_r,LPML_z,PML_Wr,PML_Wz,PML_IWr,PML_Wr2,PML_Wz2,PML_IWr2,
    snapshots_vr,snapshots_vz,snapshots_trr,nsnap,itvec_snap,nskip)
 
@@ -683,14 +671,20 @@ println("elapsed real time: ", round(time() - start;digits=3)," seconds")
 error("Stopped w/o problem.")
 
 
+offset=recgeom[:,1]-srcgeom[1]*ones(size(recgeom[:,1]))
+heatmap(offset[:],tvec[:],rec_vz,xlims=(-50,50),ylims=(0,0.1),clims=(-1E-15,1E-15))
+heatmap!(flip=true)
+
+heatmap(offset[:],tvec[:],rec_vr,xlims=(-50,50),ylims=(0,0.1),clims=(-1E-15,1E-15))
+heatmap!(flip=true)
 
 #Check
-rec_vz_Aki=Green_Aki(2500,2000,2000,tvec,src_func,srcgeom,recgeom) #vp,vs,rho
-#rec_vz_Aki=rec_vz_Aki/maximum(rec_vz_Aki)
-#rec_vz_norm=rec_vz/maximum(rec_vz)
-plt1=heatmap(recgeom[:,1],tvec[:],rec_vz,xlabel="Z (m)",ylabel="time (s)",title="FD")
+rec_vz_Aki=Green_Aki(2525.7,1275.8,2500.1,tvec,src_func,srcgeom,recgeom)
+rec_vz_Aki=rec_vz_Aki/maximum(rec_vz_Aki)
+rec_vz_norm=rec_vz/maximum(rec_vz)
+plt1=heatmap(recgeom[:,1],tvec[:],rec_vz_norm,xlabel="Z (m)",ylabel="time (s)",title="FD")
 plt2=heatmap(recgeom[:,1],tvec[:],rec_vz_Aki,xlabel="Z (m)",ylabel="time (s)",title="Theory")
-plt3=plot(tvec[:],rec_vz[:,151],xlabel="time (s)",label="FD")
+plt3=plot(tvec[:],rec_vz_norm[:,151],xlabel="time (s)",label="FD")
 plot!(tvec[:],rec_vz_Aki[:,151],xlabel="time (s)",label="Theory")
 display(plot(plt1,plt2,plt3,layout=(3,1)))
 

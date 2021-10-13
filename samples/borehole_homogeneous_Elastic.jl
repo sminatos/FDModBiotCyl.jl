@@ -89,7 +89,7 @@ function makemodel_homogeneous_Elastic()
 
 #Model size
    nr=351 #samples
-   nz=1401 #samples
+   nz=1001 #samples
    dr=0.005 #meter
    dz=0.005 #meter
 
@@ -477,7 +477,8 @@ check_stability01(dt,dz,Vmax,0)
 #======================
 Creating src wavelet
 ======================#
-f0=5000 #src Freq
+#f0=5000 #src Freq
+f0=8000
 delay=1/f0*1.0
 #src_func=myricker2(tvec,f0,delay,2) #when using 2nd derivative Gaussian (good for DWI)
 src_func=myricker2(tvec,f0,delay,1) #when using 1st derivative Gaussian (Randall?)
@@ -495,7 +496,11 @@ Point src geometry
 srcgeom=zeros(1,2) #(z,r)
 srcgeom[1,1]=(nz-1)*dz/3 #z meter
 srcgeom[1,2]=0.1*dr #r meter
-src_index,src_dn=get_srcindex_monopole(srcgeom,dr,dz)
+#src_index,src_dn=get_srcindex_monopole(srcgeom,dr,dz)
+#Gaussian point src
+wsize=5 #window size (odd number)
+wsigma=1 #std
+src_index,src_dn=get_srcindex_pGauss(srcgeom,dr,dz,wsize,wsigma)
 
 #error()
 #==============================
@@ -505,7 +510,7 @@ vr,vz,trr,tpp,tzz,trz,vfr,vfz,pf=init_fields_Por(nz,nr) #
 
 # Initializing PML field variables
 LPML_r,LPML_z,PML_Wr,PML_Wz,
-PML_IWr,PML_Wr2,PML_Wz2,PML_IWr2=init_PML_profile(LPML_r,LPML_z,Vmax,dr,dz,nr)
+PML_IWr,PML_Wr2,PML_Wz2,PML_IWr2=init_PML_profile(LPML_r,LPML_z,Vmax,dr,dz,nr,f0)
 #PML_check(LPML_r,LPML_z,Vmax,dr,dz,f0)
 
 #===================
@@ -564,6 +569,22 @@ error("Stopped w/o problem.")
    display(plot(plt1))
 
 
+
+
+ns_dwi=1024
+tvec_dwi=collect(range(0,0.003,length=ns_dwi))
+data_dwi = Array{Float32}(undef, ns_dwi, 1); #
+read!("/Users/mminato/work/Git_Projects/FDModBiotCyl.jl/trunk/DWI/DWI/work/dwi_2m_5kHz.bin", data_dwi)
+plot(tvec,rec_tii[:,735]/maximum(rec_tii[:,735]))
+plot!(tvec_dwi+ones(size(tvec_dwi))*0.000065,data_dwi/maximum(data_dwi))
+
+
+ns_dwi=1024
+tvec_dwi=collect(range(0,0.003,length=ns_dwi))
+data_dwi = Array{Float32}(undef, ns_dwi, 1); #
+read!("/Users/mminato/work/Git_Projects/FDModBiotCyl.jl/trunk/DWI/DWI/work/dwi_2m_8kHz.bin", data_dwi)
+plot(tvec,rec_tii[:,735]/maximum(rec_tii[:,735]))
+plot!(tvec_dwi+ones(size(tvec_dwi))*0.00004,data_dwi/maximum(data_dwi))
 
 tmp_filename="out.jld"
 tmp_filename_full=string(@__DIR__,"/",tmp_filename)
