@@ -1,4 +1,4 @@
-#Poroelastic FDTD in cylindrical coordinate
+#Poroelastic FDTD in the cylindrical coordinate system
 #Guan and Hu (2011), Coomun. Comput. Phys., doi: 10.4208/cicp.020810.161210a
 #Ou and Wang (2019), Geophys. J. Int., doi: 10.1093/gji/ggz144
 #--Geometry convention---
@@ -16,11 +16,11 @@
 # The field parameters located at r=0 are tzz,trr,tpp,pf,vz,vfz.
 # The field parameters located at z=0 are tzz,trr,tpp,pf,vr,vfr.
 #
-#--Redifining material parameters for Biot poroelasticity--
+#--Redefining material parameters for Biot poroelasticity--
 # H, C, M, mu, rhof, rho, k, eta, phi : See Ou and Wang (2019, doi: 10.1093/gji/ggz144
 # will be dependent on --> D1(=0 when k(w)=k0), D2, rho, rhof, M, C, H, mu
 #
-#--Additional field variables for Biot poroelasticitiy--
+#--Additional field variables for Biot poroelasticity--
 # pf, vwr, vwz : fluid pressure, vr and vz
 
 #--
@@ -87,23 +87,17 @@ function makemodel_homogeneous_PoroElastic()
 #G: Formation shear moduli
 #D1,D2: Poroelastic moduli in Ou's formulation
 #Flag_AC,Flag_E: flag specifying acoustic region or elastic region
-#Other input parameters to main loop function are:
+#Other input parameters to the main loop function are:
 #ir_wall: grid number in r direction where a borehole wall starts (single value)
 #
-# This function creates above input paramers assuming a
+# This function creates the above input parameters assuming a
 # homogeneous poroelastic media
 
 #Model size
-#==
    nr=251 #samples
    nz=351 #samples
    dr=0.5 #meter
    dz=0.5 #meter
-==#
-   nr=501 #samples
-   nz=701 #samples
-   dr=0.25 #meter
-   dz=0.25 #meter
 
    #==============================================
    Initializing poroelastic parameters (Sidler's)
@@ -114,7 +108,7 @@ function makemodel_homogeneous_PoroElastic()
    Km=zeros(nz,nr) #frame
    Ks=zeros(nz,nr) #grain
    G=zeros(nz,nr) #bulk
-   Rho=zeros(nz,nr) #bulk (weighting average of Rhos and Rhof)
+   Rho=zeros(nz,nr) #bulk (weighted average of Rhos and Rhof)
    Rhos=zeros(nz,nr) #grain
    #---fluid phase----
    Kf=zeros(nz,nr)
@@ -124,7 +118,7 @@ function makemodel_homogeneous_PoroElastic()
    #---other parameters---
    Phi=zeros(nz,nr)
    Tot=zeros(nz,nr) #Tortuosity factor (see Sidler 2014)
-   #End initilizing poroelastic parameters
+   #End initializing poroelastic parameters
 
    #==============================================
    Fluid parameters
@@ -134,24 +128,6 @@ function makemodel_homogeneous_PoroElastic()
    Rhof[:,:]=ones(nz,nr)*1000
    Eta[:,:]=ones(nz,nr)*1.0*10^(-3) #water 1E-3 Pa.s
 
-#==
-   #========================================
-   Inclusion of a borehole (acoustic media)
-   ========================================#
-   Flag_AC=zeros(nz,nr)
-   #Borehole wall (homogeneous radius)
-   ir_wall=Int(round(0.1/dr))
-
-   for iz=1:nz
-       Flag_AC[iz,1:ir_wall]=ones(ir_wall)
-       Rho[iz,1:ir_wall]=ones(ir_wall)*Rhof[1,1] #Rho=Rhof
-       G[iz,1:ir_wall]=ones(ir_wall)*0.0 #G=0
-       Phi[iz,1:ir_wall]=ones(ir_wall) #Phi=1
-       Km[iz,1:ir_wall]=ones(ir_wall)*0.0 #Km=0 (G=0,phi=0->M=C=H=Kf, Ou's)
-       Ks[iz,1:ir_wall]=ones(ir_wall)*Kf[1,1] #
-       Eta[iz,1:ir_wall]=ones(ir_wall)*0.0 #eta=0 (-> D2=0, Ou's)
-   end
-==#
    Flag_AC=zeros(nz,nr)
    ir_wall=0
 
@@ -251,70 +227,16 @@ function Gassman(vp_dry,vs_dry,rhos,phi,Ks)
 
 
    #Gassman K_undrained=alpha^2*M+K_dry (see Guan2011)
-   #Gassman K_sat=K_undrained? --> YES!
+   #Gassman K_sat=K_undrained
    Ksat=K_dry+(1-K_dry/Ks)^2/(
        phi/Kf+(1-phi)/Ks-K_dry/Ks^2);
    K_undrained=K_dry+alpha^2*M;
    Vp0=sqrt(H/rho_bulk); #->sqrt((K_undrained+4/3G)/rho_bulk)
    Vs0=sqrt(G/rho_bulk); #->sqrt((K_undrained+4/3G)/rho_bulk)
-   #Skepmton Coefficient
+   #Skempton Coefficient
    B=(1/K_dry-1/Ks)/(1/K_dry-1/Ks+phi*(1/Kf-1/Ks));
 
    return Vp0,Vs0,rho_bulk
-end
-
-#=========================
-Green's function
-=========================#
-function Green_Aki(vp,vs,rho,tvec,src_func,srcgeom,recgeom)
-#Aki and Rechards eq 4.23
-#vp=2500
-#vs=2000
-#rho=2500
-
-tmp_R=recgeom-repeat(srcgeom,nrec,1) #(z,r)
-R=map(x->sqrt(x),sum(tmp_R.^2,dims=2))
-gammax=tmp_R[:,2]./R
-gammaz=tmp_R[:,1]./R
-src_spl=Spline1D(tvec[:],src_func[:],k=1)
-    #================
-          Gzz
-    ================#
-     amp_p=1/(4pi*rho*vp^2)*gammaz.*gammaz./R
-     amp_s=-1/(4pi*rho*vs^2)*(gammaz.*gammaz-ones(size(gammax)))./R
-     Gzz_far=zeros(nt,nrec)
-     for irec=1:nrec
-        tmp=amp_p[irec]*src_spl(tvec[:]-R[irec]/vp*ones(size(tvec)))+
-            amp_s[irec]*src_spl(tvec[:]-R[irec]/vs*ones(size(tvec)))
-        Gzz_far[:,irec]=tmp #far-field terms only (displacement-body force)
-     end
-     #inclusion of a near-field term
-     Gzz_near=zeros(nt,nrec)
-     amp_nf=1/(4pi*rho)*(3*gammaz.*gammaz-ones(size(gammax)))./(R.^3)
-
-     for irec=1:nrec
-        tau=range(R[irec]/vp,R[irec]/vs,length=nt) # range object (no memory allocation)
-        tau=collect(tau) # a vector
-        dt_tau=tau[2]-tau[1]
-        tmp_nf=zeros(nt,1)
-        for it=1:nt
-           src_intp=src_spl(tvec[it]*ones(size(tau))-tau[:])
-           tmp_nf[it]=sum(src_intp.*tau)*dt_tau
-        end
-        Gzz_near[:,irec]=tmp_nf*amp_nf[irec]
-     end
-
-     Gzz=Gzz_far+Gzz_near
-
-#converting displacement to particle velocity
-  tmp=(Gzz[2:end,:]-Gzz[1:end-1,:])/dt
-  vz_an=zeros(nt,nrec)
-  for irec=1:nrec
-    tmp_spl=Spline1D(tvec[1:end-1]+dt/2*ones(size(tmp[:,irec])),tmp[:,irec],k=1)
-    vz_an[:,irec]=tmp_spl(tvec)
-  end
-
-  return vz_an
 end
 
 
@@ -335,7 +257,7 @@ function main_loop!(nr,nz,dr,dz,Rho,Rhof,M,C,H,G,D1,D2,dt,nt,T,
 #--
 Flag_vf_zero=get_Flag_vf_zero(Flag_AC,Flag_E,nr,nz)
 
-#initilize matrices of PML
+#initializing matrices of PML
 Prz_T,Pzz_T,Rz_T,Srz_T,PzzPE_T,RzPE_T,
 Prz_B,Pzz_B,Rz_B,Srz_B,PzzPE_B,RzPE_B,
 Prr_R,Qrp_R,Pzr_R,Qzp_R,Rr_R,Rp_R,Rrz_R,PrrPE_R,RrPE_R,RpPE_R,
@@ -356,17 +278,7 @@ vfr_old=zeros(nz,nr)
 vfz_old=zeros(nz,nr)
 
 
-# Making sure RightBC for stress (zero values are trp and trz)
-#ApplyBCRight_stress!(vr,vz, #Use with flag_zero=1 (see ApplyBCRight_stress1D01)
-#    trz,
-#    G,nr,nz,dr,dz,dt)
-
-#error()
 @showprogress for ii=1:nt
-#@showprogress for ii=1:301
-#for ii=1:1
-
-#@show Pzz_T[1,10],Srz_T[1,10]
 
 #----Time at (ii-1)*dt---(updating velocities)-----
 
@@ -375,20 +287,11 @@ PML_save_vel!(memT_vr,memT_vz,memT_vfr,memT_vfz,
               memB_vr,memB_vz,memB_vfr,memB_vfz,
               memR_vr,memR_vz,memR_vfr,memR_vfz,
               vr,vz,vfr,vfz,nr,nz,LPML_z,LPML_r)
-#println("update vel")
-
-#keep current values before updating velocity for Acoustic-Poroelastic BC later
-#mycopy_mat(vr,vr_old,nz,nr)
-#mycopy_mat(vz,vz_old,nz,nr)
-#mycopy_mat(vfr,vfr_old,nz,nr)
-#mycopy_mat(vfz,vfz_old,nz,nr)
 
 # Main velocity update!
 update_velocity_1st_Por!(vr,vz,trr,tpp,tzz,trz,vfr,vfz,pf,Rho,Rhof,D1,D2,Flag_vf_zero,nr,nz,dr,dz,dt,LPML_z,LPML_r)
 
-#error()
-
-#PML: update velocity
+# PML: updating velocity
 PML_update_vel!(vr,vz,trr,tpp,tzz,trz,vfr,vfz,pf,
               Rho,Rhof,D1,D2,Flag_vf_zero,nr,nz,dr,dz,dt,
               Prz_T,Pzz_T,PzzPE_T,
@@ -402,12 +305,8 @@ PML_update_vel!(vr,vz,trr,tpp,tzz,trz,vfr,vfz,pf,
               Prr_BR,Qrp_BR,Pzr_BR,Qzp_BR,Rr_BR,Rp_BR,Rrz_BR,
               PrrPE_BR,RrPE_BR,RpPE_BR,
               LPML_z,LPML_r)
-#println("update vel Left")
-#if(ii==1)
-#   error()
-#end
 
-# Making sure RightBC for velocity (zero values are vr)
+# Making sure RightBC for velocity (zero values -> vr)
 ApplyBCRight_vel!(vr,vz,
       trr,tpp,tzz,trz,
       vfr,vfz,pf,
@@ -422,15 +321,8 @@ ApplyBCLeft_vel!(vr,vz,trr,tpp,tzz,trz,vfr,vfz,pf,
                           Prz_B,Pzz_B,PzzPE_B,
                           LPML_z)
 
-#---Fluid-PE BC @borehole wall (test): replacing velocity values
-#update_vr_vfr_1st_vertical(vr,trr,tpp,tzz,trz,vfr,pf,
-#    vr_old,vfr_old,
-#    Rho,Rhof,D1,D2,nr,nz,dr,dz,dt,LPML_z,
-#    Prz_T,Prz_B,
-#    ir_wall,Flag_AC,Flag_E)
 
-
-#PML: update memory variables for stress (Rx and Sxx) using velocity at two time steps
+#PML: updating memory variables for stress (Rx and Sxx) using velocity at two-time steps
 PML_update_memRS!(Rz_T,Srz_T,RzPE_T,
                   Rz_B,Srz_B,RzPE_B,
                   Rr_R,Rp_R,Rrz_R,RrPE_R,RpPE_R,
@@ -452,20 +344,18 @@ PML_update_memRS!(Rz_T,Srz_T,RzPE_T,
 #----Time at (ii-1)*dt+dt/2----(updating stress)---
 
 
-#--PML: save stress at previous step
+#--PML: saving stress at the previous step
 PML_save_stress!(memT_trr,memT_tpp,memT_tzz,memT_trz,memT_pf,
                  memB_trr,memB_tpp,memB_tzz,memB_trz,memB_pf,
                  memR_trr,memR_tpp,memR_tzz,memR_trz,memR_pf,
                  trr,tpp,tzz,trz,pf,nr,nz,LPML_z,LPML_r)
 
-#println("update stress")
 
 # Main stress update!
 update_stress_1st_Por!(vr,vz,trr,tpp,tzz,trz,vfr,vfz,pf,
      M,C,H,G,nr,nz,dr,dz,dt,LPML_z,LPML_r)
-#error()
 
-#PML: stress update
+# PML: updating stress
 PML_update_stress!(vr,vz,trr,tpp,tzz,trz,vfr,vfz,pf,
                   M,C,H,G,nr,nz,dr,dz,dt,
                   Rz_T,Srz_T,RzPE_T,
@@ -476,20 +366,17 @@ PML_update_stress!(vr,vz,trr,tpp,tzz,trz,vfr,vfz,pf,
                   LPML_z,LPML_r)
 
 
-# Making sure RightBC for stress (zero values are trp and trz)
+# Making sure RightBC for stress (zero values -> trp and trz)
 ApplyBCRight_stress!(vr,vz, #Use with flag_zero=1 (see ApplyBCRight_stress1D01)
      trz,
      G,nr,nz,dr,dz,dt)
 
 #---stress B.Cs
-#println("update stress Left")
-#ApplyBCLeft_stress_2nd!(vr,vphi,vz,trr,tpp,tzz,trp,trz,tpz,lmat,mmat,m,nr,nz,dr,dz)
 ApplyBCLeft_stress!(vr,vz,trr,tpp,tzz,trz,vfr,vfz,pf,
                     M,C,H,G,nr,nz,dr,dz,dt,
                     Rz_T,Srz_T,RzPE_T,
                     Rz_B,Srz_B,RzPE_B,
                     LPML_z)
-#return
 
 #--src injection (stress:monopole src)
 #srcamp=-src_func[ii]
@@ -497,15 +384,11 @@ ApplyBCLeft_stress!(vr,vz,trr,tpp,tzz,trz,vfr,vfz,pf,
 #srcapply!(trr,src_index,src_dn,srcamp)
 #srcapply!(tpp,src_index,src_dn,srcamp)
 srcamp=src_func[ii]
+srcamp=srcamp*dt/Rhof[1,1]
 srcapply!(pf,src_index,src_dn,srcamp)
 
 
-#---Additional BC when Flag_Acoustic/Flag_Elastic
-#ApplyBC_stress_AcousticMedia_TEST!(trr,tpp,tzz,trz,pf,Flag_AC,nr,nz) #pf=-1/3tii
-#ApplyBC_stress_ElasticMedia_Ou!(pf,Flag_E,nr,nz) #when Flag_E==1, then pf=0
-
-
-#--PML: update memory variables for velocity (Pxx and Qxx) using stress at two time steps
+#--PML: updating memory variables for velocity (Pxx and Qxx) using stress at two-time steps
 PML_update_memPQ!(Prz_T,Pzz_T,PzzPE_T,
                   Prz_B,Pzz_B,PzzPE_B,
                   Prr_R,Qrp_R,Pzr_R,Qzp_R,PrrPE_R,
@@ -519,7 +402,6 @@ PML_update_memPQ!(Prz_T,Pzz_T,PzzPE_T,
 
 #-----End of updating field----
 
-#println("receiver")
 #Receiver field (extraction)
 getRecData_from_index!(vr,rec_vr,index_allrec_vr,nrec,ii)
 getRecData_from_index!(vz,rec_vz,index_allrec_vz,nrec,ii)
@@ -529,7 +411,6 @@ getRecData_from_index!(pf,rec_pf,index_allrec_pf,nrec,ii)
 
 
 #--Snapshots
-#println("check snap")
 check_snap=findall(x -> x==ii,itvec_snap)
 if (length(check_snap)!=0)
    println("ii=",ii)
@@ -537,8 +418,6 @@ if (length(check_snap)!=0)
    get_snapshots!(snapshots_vr,snapshots_vz,cnt_snap,vr,vz,nr,nz)
    get_snapshots_t!(snapshots_trr,cnt_snap,pf,nr,nz)
 
-#   drawsnap(snapshots_trr[:,:,cnt_snap],nz,dz,nr,dr,
-#            LPML_r,LPML_z)
    drawsnap(snapshots_vz[:,2:end,cnt_snap],nz,dz,nr-1,dr,
             LPML_r,LPML_z)
 
@@ -557,13 +436,7 @@ start=time()
 General variables
 ======================#
 
-#==time samples
-const dt=0.125E-5
-const nt=16001
-const T=(nt-1)*dt
-==#
-#dt=1E-4
-#nt=1001
+#time samples
 dt=0.5E-4
 nt=2001
 
@@ -580,7 +453,6 @@ Creating model
 ======================#
 nr,nz,dr,dz,Rho,Rhof,M,C,H,G,D1,D2,Flag_AC,Flag_E,ir_wall=makemodel_homogeneous_PoroElastic()
 drawmodel(H,nz,dz,nr,dr,LPML_r,LPML_z)
-#error()
 
 #======================
 Stability check
@@ -588,15 +460,15 @@ Stability check
 Vmax=maximum((H./Rho).^(0.5))
 check_stability01(dt,dr,Vmax,0)
 check_stability01(dt,dz,Vmax,0)
-#error()
+
 #======================
 Creating src wavelet
 ======================#
 f0=100 #src Freq
 delay=1/f0*1.0
 #src_func=myricker2(tvec,f0,delay,2) #when using 2nd derivative Gaussian (good for DWI)
-src_func=myricker2(tvec,f0,delay,1) #when using 1st derivative Gaussian (Randall?)
-#src_func=myricker2(tvec,f0,delay,3) #when using 3rd derivative Gaussian
+#src_func=myricker2(tvec,f0,delay,1) #when using 1st derivative Gaussian (Randall?)
+src_func=myricker2(tvec,f0,delay,3) #when using 3rd derivative Gaussian
 tmp_maxamp=maximum(map(abs,src_func))
 src_func=src_func/tmp_maxamp
 display(plot(tvec,src_func[:],title="src function"))
@@ -612,14 +484,13 @@ srcgeom[1,1]=(nz-1)*dz/2 #z meter
 #srcgeom[1,2]=(nr-LPML_r+1)*dr #r meter
 srcgeom[1,2]=0*dr #r meter
 #Gaussian point src
-wsize=3 #window size (odd number)
+wsize=7 #window size (odd number)
 wsigma=1 #std
 src_index,src_dn=get_srcindex_pGauss(srcgeom,dr,dz,wsize,wsigma)
+plot(src_index[1,:],src_index[2,:],src_dn[:],marker=:circle,seriestype=:scatter,zcolor=src_dn[:],camera=(90,90))
 
-
-#error()
 #==============================
-Initializig field variables
+Initializing field variables
 ==============================#
 vr,vz,trr,tpp,tzz,trz,vfr,vfz,pf=init_fields_Por(nz,nr) #
 

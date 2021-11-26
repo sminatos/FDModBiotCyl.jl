@@ -1,4 +1,4 @@
-#Poroelastic FDTD in cylindrical coordinate
+#Poroelastic FDTD in the cylindrical coordinate system
 #Guan and Hu (2011), Coomun. Comput. Phys., doi: 10.4208/cicp.020810.161210a
 #Ou and Wang (2019), Geophys. J. Int., doi: 10.1093/gji/ggz144
 #--Geometry convention---
@@ -16,11 +16,11 @@
 # The field parameters located at r=0 are tzz,trr,tpp,pf,vz,vfz.
 # The field parameters located at z=0 are tzz,trr,tpp,pf,vr,vfr.
 #
-#--Redifining material parameters for Biot poroelasticity--
+#--Redefining material parameters for Biot poroelasticity--
 # H, C, M, mu, rhof, rho, k, eta, phi : See Ou and Wang (2019, doi: 10.1093/gji/ggz144
 # will be dependent on --> D1(=0 when k(w)=k0), D2, rho, rhof, M, C, H, mu
 #
-#--Additional field variables for Biot poroelasticitiy--
+#--Additional field variables for Biot poroelasticity--
 # pf, vwr, vwz : fluid pressure, vr and vz
 
 #--
