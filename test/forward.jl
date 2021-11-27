@@ -13,9 +13,6 @@ function makemodel_homogeneous_Elastic()
 #G: Formation shear moduli
 #D1,D2: Poroelastic moduli in Ou's formulation
 #Flag_AC,Flag_E: flag specifying acoustic region or elastic region
-#Other input parameters to main loop function are:
-#ir_wall: grid number in r direction where a borehole wall starts (single value)
-#
 # This function creates above input paramers assuming a
 # homogeneous elastic media
 
@@ -56,7 +53,6 @@ function makemodel_homogeneous_Elastic()
    Eta[:,:]=ones(nz,nr)*1.0*10^(-3) #water 1E-3 Pa.s
 
    Flag_AC=zeros(nz,nr)
-   ir_wall=0
 
    #==========================
    Homogeneous Elastic model
@@ -108,7 +104,7 @@ function makemodel_homogeneous_Elastic()
    end
 
 
-   return nr,nz,dr,dz,Rho,Rhof,M,C,H,G,D1,D2,Flag_AC,Flag_E,ir_wall
+   return nr,nz,dr,dz,Rho,Rhof,M,C,H,G,D1,D2,Flag_AC,Flag_E
 end
 
 
@@ -174,7 +170,6 @@ end
 function main_loop!(nr,nz,dr,dz,Rho,Rhof,M,C,H,G,D1,D2,dt,nt,T,
    vr,vz,trr,tpp,tzz,trz,
    vfr,vfz,pf,
-   ir_wall,
    src_index,src_dn,
    Flag_AC,Flag_E,
    nrec,rec_vr,rec_vz,index_allrec_vr,index_allrec_vz,
@@ -354,7 +349,7 @@ LPML_z=20
 #======================
 Creating model
 ======================#
-nr,nz,dr,dz,Rho,Rhof,M,C,H,G,D1,D2,Flag_AC,Flag_E,ir_wall=makemodel_homogeneous_Elastic()
+nr,nz,dr,dz,Rho,Rhof,M,C,H,G,D1,D2,Flag_AC,Flag_E=makemodel_homogeneous_Elastic()
 
 #======================
 Stability check
@@ -414,7 +409,6 @@ Start main FD Loop
 main_loop!(nr,nz,dr,dz,Rho,Rhof,M,C,H,G,D1,D2,dt,nt,T,
    vr,vz,trr,tpp,tzz,trz,
    vfr,vfz,pf,
-   ir_wall,
    src_index,src_dn,
    Flag_AC,Flag_E,
    nrec,rec_vr,rec_vz,index_allrec_vr,index_allrec_vz,

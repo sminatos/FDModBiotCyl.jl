@@ -1,28 +1,3 @@
-#Poroelastic FDTD in the cylindrical coordinate system
-#Guan and Hu (2011), Coomun. Comput. Phys., doi: 10.4208/cicp.020810.161210a
-#Ou and Wang (2019), Geophys. J. Int., doi: 10.1093/gji/ggz144
-#--Geometry convention---
-# (z,r): z vertical downward
-# Material parameters are defined at (z,r), and constant within the cell of (z+dz/2,r+dr/2),(z-dz/2,r+dr/2),(z-dz/2,r-dr/2),(z+dz/2,r-dr/2)
-# --> (z,r) is the center of the cell, where tzz,trr,tpp,pf are defined.
-#
-# index (k,j) corresponds to:
-# tzz(z,r),tpp(z,r),trr(z,r),pf(z,r),
-# vr(z,r+dr/2),vfr(z,r+dr/2),
-# trz(z+dz/2,r+dr/2),
-# vz(z+dz/2,r),vfz(z+dz/2,r)
-#
-# Origin (z=0,r=0) or (k=1,j=1) is at the location of tzz, trr, tpp, and pf.
-# The field parameters located at r=0 are tzz,trr,tpp,pf,vz,vfz.
-# The field parameters located at z=0 are tzz,trr,tpp,pf,vr,vfr.
-#
-#--Redefining material parameters for Biot poroelasticity--
-# H, C, M, mu, rhof, rho, k, eta, phi : See Ou and Wang (2019, doi: 10.1093/gji/ggz144
-# will be dependent on --> D1(=0 when k(w)=k0), D2, rho, rhof, M, C, H, mu
-#
-#--Additional field variables for Biot poroelasticity--
-# pf, vwr, vwz : fluid pressure, vr and vz
-
 #--
 # Threads.nthreads() displays number of available threads
 # if ==1, start julia with JULIA_NUM_THREADS=4 julia
@@ -87,9 +62,6 @@ function makemodel_homogeneous_Elastic()
 #G: Formation shear moduli
 #D1,D2: Poroelastic moduli in Ou's formulation
 #Flag_AC,Flag_E: flag specifying acoustic region or elastic region
-#Other input parameters to main loop function are:
-#ir_wall: grid number in r direction where a borehole wall starts (single value)
-#
 # This function creates above input paramers assuming a
 # homogeneous elastic media
 
@@ -131,26 +103,7 @@ function makemodel_homogeneous_Elastic()
    Rhof[:,:]=ones(nz,nr)*1000
    Eta[:,:]=ones(nz,nr)*1.0*10^(-3) #water 1E-3 Pa.s
 
-#==
-   #========================================
-   Inclusion of a borehole (acoustic media)
-   ========================================#
    Flag_AC=zeros(nz,nr)
-   #Borehole wall (homogeneous radius)
-   ir_wall=Int(round(0.1/dr))
-
-   for iz=1:nz
-       Flag_AC[iz,1:ir_wall]=ones(ir_wall)
-       Rho[iz,1:ir_wall]=ones(ir_wall)*Rhof[1,1] #Rho=Rhof
-       G[iz,1:ir_wall]=ones(ir_wall)*0.0 #G=0
-       Phi[iz,1:ir_wall]=ones(ir_wall) #Phi=1
-       Km[iz,1:ir_wall]=ones(ir_wall)*0.0 #Km=0 (G=0,phi=0->M=C=H=Kf, Ou's)
-       Ks[iz,1:ir_wall]=ones(ir_wall)*Kf[1,1] #
-       Eta[iz,1:ir_wall]=ones(ir_wall)*0.0 #eta=0 (-> D2=0, Ou's)
-   end
-==#
-   Flag_AC=zeros(nz,nr)
-   ir_wall=0
 
    #==========================
    Homogeneous Elastic model
@@ -165,14 +118,11 @@ function makemodel_homogeneous_Elastic()
 
    Flag_E=ones(nz,nr)
    Rho=Rho1_elastic*ones(nz,nr) #Rho=Rho_elastic
-#       Rhof[iz,ir_wall+1:end]=ones(nr-ir_wall)*Rho1_elastic #Rhof=Rho_elastic
    G=ones(nz,nr)*G_elastic #G=Gs (Ou's)
    #--
-#   Phi[iz,ir_wall+1:end]=ones(nr-ir_wall)*0.0 #Phi=0
    Km=ones(nz,nr)*K_elastic #Km
    Ks=ones(nz,nr)*K_elastic #Ks=Km (-> M=Inf, Ou's)
    #--
-#   Kappa0[iz,ir_wall+1:end]=ones(nr-ir_wall)*0.0 #k0=0 (-> D1=D2=Inf, Ou's)
 
    #=====================================================
    Converting Sidler's poroelastic parameters into Ou's
@@ -205,7 +155,7 @@ function makemodel_homogeneous_Elastic()
    end
 
 
-   return nr,nz,dr,dz,Rho,Rhof,M,C,H,G,D1,D2,Flag_AC,Flag_E,ir_wall
+   return nr,nz,dr,dz,Rho,Rhof,M,C,H,G,D1,D2,Flag_AC,Flag_E
 end
 
 
@@ -284,7 +234,6 @@ end
 function main_loop!(nr,nz,dr,dz,Rho,Rhof,M,C,H,G,D1,D2,dt,nt,T,
    vr,vz,trr,tpp,tzz,trz,
    vfr,vfz,pf,
-   ir_wall,
    src_index,src_dn,
    Flag_AC,Flag_E,
    nrec,rec_vr,rec_vz,index_allrec_vr,index_allrec_vz,
@@ -589,7 +538,7 @@ LPML_z=20
 #======================
 Creating model
 ======================#
-nr,nz,dr,dz,Rho,Rhof,M,C,H,G,D1,D2,Flag_AC,Flag_E,ir_wall=makemodel_homogeneous_Elastic()
+nr,nz,dr,dz,Rho,Rhof,M,C,H,G,D1,D2,Flag_AC,Flag_E=makemodel_homogeneous_Elastic()
 drawmodel(H,nz,dz,nr,dr,LPML_r,LPML_z)
 #error()
 
@@ -669,7 +618,6 @@ Start main FD Loop
 main_loop!(nr,nz,dr,dz,Rho,Rhof,M,C,H,G,D1,D2,dt,nt,T,
    vr,vz,trr,tpp,tzz,trz,
    vfr,vfz,pf,
-   ir_wall,
    src_index,src_dn,
    Flag_AC,Flag_E,
    nrec,rec_vr,rec_vz,index_allrec_vr,index_allrec_vz,
