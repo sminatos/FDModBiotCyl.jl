@@ -1,28 +1,3 @@
-#Poroelastic FDTD in the cylindrical coordinate system
-#Guan and Hu (2011), Coomun. Comput. Phys., doi: 10.4208/cicp.020810.161210a
-#Ou and Wang (2019), Geophys. J. Int., doi: 10.1093/gji/ggz144
-#--Geometry convention---
-# (z,r): z vertical downward
-# Material parameters are defined at (z,r), and constant within the cell of (z+dz/2,r+dr/2),(z-dz/2,r+dr/2),(z-dz/2,r-dr/2),(z+dz/2,r-dr/2)
-# --> (z,r) is the center of the cell, where tzz,trr,tpp,pf are defined.
-#
-# index (k,j) corresponds to:
-# tzz(z,r),tpp(z,r),trr(z,r),pf(z,r),
-# vr(z,r+dr/2),vfr(z,r+dr/2),
-# trz(z+dz/2,r+dr/2),
-# vz(z+dz/2,r),vfz(z+dz/2,r)
-#
-# Origin (z=0,r=0) or (k=1,j=1) is at the location of tzz, trr, tpp, and pf.
-# The field parameters located at r=0 are tzz,trr,tpp,pf,vz,vfz.
-# The field parameters located at z=0 are tzz,trr,tpp,pf,vr,vfr.
-#
-#--Redefining material parameters for Biot poroelasticity--
-# H, C, M, mu, rhof, rho, k, eta, phi : See Ou and Wang (2019, doi: 10.1093/gji/ggz144
-# will be dependent on --> D1(=0 when k(w)=k0), D2, rho, rhof, M, C, H, mu
-#
-#--Additional field variables for Biot poroelasticity--
-# pf, vwr, vwz : fluid pressure, vr and vz
-
 #--
 # Threads.nthreads() displays number of available threads
 # if ==1, start julia with JULIA_NUM_THREADS=4 julia
@@ -80,20 +55,19 @@ end
 Creating homogeneous model
 =========================#
 function makemodel_homogeneous_PoroElastic()
-#Nessesary input matrices to main loop function are:
-#Rho: Bulk density
-#Rhof: Fluid density
-#M,C,H: Poroelastic moduli
-#G: Formation shear moduli
-#D1,D2: Poroelastic moduli in Ou's formulation
-#Flag_AC,Flag_E: flag specifying acoustic region or elastic region
-#Other input parameters to the main loop function are:
-#ir_wall: grid number in r direction where a borehole wall starts (single value)
-#
-# This function creates the above input parameters assuming a
-# homogeneous poroelastic media
+   #Necessary input matrices to the main loop function are:
+   #Rho: Bulk density
+   #Rhof: Fluid density
+   #M,C,H: Poroelastic moduli
+   #G: Formation shear modulus
+   #D1,D2: Poroelastic moduli in Ou's formulation
+   #Flag_AC,Flag_E: flag specifying acoustic region or elastic region
+   #Other input parameters to the main loop function are:
+   #
+   # This function creates the above input parameters assuming a
+   # homogeneous poroelastic media
 
-#Model size
+   # Model size
    nr=251 #samples
    nz=351 #samples
    dr=0.5 #meter
@@ -103,7 +77,7 @@ function makemodel_homogeneous_PoroElastic()
    Initializing poroelastic parameters (Sidler's)
    ==============================================#
    #First creating Sidler's poroelastic parameters and then converting to
-   #nessesary parameters for our FD
+   #necessary parameters for our FD
    #----solid phase-----
    Km=zeros(nz,nr) #frame
    Ks=zeros(nz,nr) #grain
@@ -129,7 +103,6 @@ function makemodel_homogeneous_PoroElastic()
    Eta[:,:]=ones(nz,nr)*1.0*10^(-3) #water 1E-3 Pa.s
 
    Flag_AC=zeros(nz,nr)
-   ir_wall=0
 
    #==========================
    Homogeneous PoroElastic model
@@ -186,7 +159,7 @@ function makemodel_homogeneous_PoroElastic()
    end
 
 
-   return nr,nz,dr,dz,Rho,Rhof,M,C,H,G,D1,D2,Flag_AC,Flag_E,ir_wall
+   return nr,nz,dr,dz,Rho,Rhof,M,C,H,G,D1,D2,Flag_AC,Flag_E
 end
 
 
@@ -207,7 +180,7 @@ end
 Computing Vp_sat, Vs_sat
 from poroelastic properties
 =========================#
-function Gassman(vp_dry,vs_dry,rhos,phi,Ks)
+function Gassmann(vp_dry,vs_dry,rhos,phi,Ks)
 #   vp_dry=5170; #dry vp
 #   vs_dry=3198; #dry vs
 #   rhos=3143; #grain density
@@ -226,8 +199,8 @@ function Gassman(vp_dry,vs_dry,rhos,phi,Ks)
    H=K_dry+4/3*G+M.*alpha.^2; #H=K_undrained+4/3*G (see 2.6c, Guan2011)
 
 
-   #Gassman K_undrained=alpha^2*M+K_dry (see Guan2011)
-   #Gassman K_sat=K_undrained
+   #Gassmann K_undrained=alpha^2*M+K_dry (see Guan2011)
+   #Gassmann K_sat=K_undrained
    Ksat=K_dry+(1-K_dry/Ks)^2/(
        phi/Kf+(1-phi)/Ks-K_dry/Ks^2);
    K_undrained=K_dry+alpha^2*M;
@@ -245,7 +218,6 @@ end
 function main_loop!(nr,nz,dr,dz,Rho,Rhof,M,C,H,G,D1,D2,dt,nt,T,
    vr,vz,trr,tpp,tzz,trz,
    vfr,vfz,pf,
-   ir_wall,
    src_index,src_dn,
    Flag_AC,Flag_E,
    nrec,rec_vr,rec_vz,rec_pf,index_allrec_vr,index_allrec_vz,index_allrec_pf,
@@ -451,7 +423,7 @@ LPML_z=30
 #======================
 Creating model
 ======================#
-nr,nz,dr,dz,Rho,Rhof,M,C,H,G,D1,D2,Flag_AC,Flag_E,ir_wall=makemodel_homogeneous_PoroElastic()
+nr,nz,dr,dz,Rho,Rhof,M,C,H,G,D1,D2,Flag_AC,Flag_E=makemodel_homogeneous_PoroElastic()
 drawmodel(H,nz,dz,nr,dr,LPML_r,LPML_z)
 
 #======================
@@ -494,7 +466,7 @@ Initializing field variables
 ==============================#
 vr,vz,trr,tpp,tzz,trz,vfr,vfz,pf=init_fields_Por(nz,nr) #
 
-# Initializing PML field variables
+# Creating PML profile
 LPML_r,LPML_z,PML_Wr,PML_Wz,
 PML_IWr,PML_Wr2,PML_Wz2,PML_IWr2=init_PML_profile(LPML_r,LPML_z,Vmax,dr,dz,nr,f0)
 #PML_check(LPML_r,LPML_z,Vmax,dr,dz,f0)
@@ -528,7 +500,6 @@ Start main FD Loop
 main_loop!(nr,nz,dr,dz,Rho,Rhof,M,C,H,G,D1,D2,dt,nt,T,
    vr,vz,trr,tpp,tzz,trz,
    vfr,vfz,pf,
-   ir_wall,
    src_index,src_dn,
    Flag_AC,Flag_E,
    nrec,rec_vr,rec_vz,rec_pf,index_allrec_vr,index_allrec_vz,index_allrec_pf,

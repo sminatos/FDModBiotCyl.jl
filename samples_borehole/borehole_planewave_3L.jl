@@ -1,99 +1,3 @@
-#testing FDTD in cylindrical coordinate
-#Randall et al (1991)
-
-
-#01: start. homogeneous
-#02-04: module. CylFDMOD.jl
-#05:testing large model before ABC
-#06B:  speedup. functioned.
-#07: receiver trace test.
-#08: testing Interpolations
-#  : testing 3dFD and DWI
-#09: testing Hicks interpolated Source -> good.
-#10: functionizing to speedup
-#11: testing Liao's ABC
-#12: testing Cerjan's sponge ABC
-#13: Heterogeneity test.
-#14: Snapshots test
-#14B: Figures use Plots.jl+pyplot backend
-#15: testing borehole model
-#16: testing m=1 (assuming water @r=0, or trp=0 @r=0)
-#16B: explicit imput of "m" (CylFDMod03.jl)
-#16C: careful implementation of dipole source on r=0 --> not yet
-#17: test functionizing main loop
-#-------------Major change-----
-#18: implementing 2nd order FD (Graves)
-#18B: better convention
-#19: minor modification (either Liao OR Cerjan ABC is better?)
-#Mittet01: field variable locations are from Mittet (1996)
-#02: testing all l'Hopital rule for LB (if reducing noise on axis?->not yet)-> no effect?
-#  : setting back to original (same as Mittet01).
-#  : "noise" was disappeared when dipole source is a single point on axis (j=1). why...?
-#Nojima01: loading model created by makemodel_Nojima01.jl
-#Nojima02: minor bug fix
-#Nojima03: model building using module -> becomes very slow. Checking which varibales should be "const"
-#        : "m","nt","dt","T"
-#Nojima03: minor bug fixes due to Global/Local scopes (minor changes in modules too)
-
-#planewave01: testing plane wave incidence
-#03: B.C. of plane wave solution from Schoenberg. Test.
-
-#OWS01: modeling OWS source (monopole)
-
-#PML01: test implementing NPML of Wang and Tang (2003)
-#PML03: CylFDMod_Mittet05tmp3.jl. bug fix about LEft BCs.
-#PML04: Right PML
-#PML05: checking why bottom and top is non synmetric...Good.
-# temporary good version.
-#PML06: implementing TopRight...Done.
-#PML07: checking furhter r direction..
-#PML08: make it work with the latest module (CylFDMod_Mittet06tmp6.jl)...done.
-# --------------
-# major change
-# --------------
-# Based from CylFD_PML08.jl and CylFDMod_Mittet06tmp6.jl
-# --PcylFD -> Biot's poroelastic media.
-# --Main -> Ou 2019, GJI, doi: 10.1093/gji/ggz144. Sub->Sidler, 2014, GJI, doi: 10.1093/gji/ggt447
-# Parameters definitions are better in Sidler 2014
-# --radially invariant source only (m=0)
-# PcylFD_test01: no poroelastic, homogeneous + no PML, done.
-# PcylFD_test02: start implementing poroelasticitiy (PCylFDMod_Ou01.jl) w/o PML looks ok.
-# PcylFD_test02: start PML
-# PcylFD_test04: ./PCylFDMod_Ou02.jl
-# Homogeneous test looks OK!
-# PcylFD_test05: start implementing borehole environment: ./PCylFDMod_Ou03.jl
-# PcylFD_test06: switch to 1st order FD: ./PCylFDMod_Ou04.jl
-#              : Guan's Fig3 looks OK! (copymat is important!!)
-# PcylFD_planewave01: plane wave incidence (taken from CylFD_planewave_Nojima01_tmpsimple06.jl)
-# PcylFD_planewave02: additional receivers along permeable layer (vfr,pf)
-#                  : Checking if pf~-B*sii/3 ... done. Note: this relation required A. undrained condition, and B. zero-initial condition.
-#                  : B is skempton coefficient. pf is pore pressure. sii/3 is mean "total" stress
-#                  : Important-> In this FD implementation, tau are all "total" stress. vf are all "relative fluid velocity"
-#                  : I keep this code so as to keep the setting for testing pf~-B*sii/3
-# PcylFD_planewave03: coming back to test thin porous layer
-
-#--Geometry convention---
-# See Randall et al (1991), Geophysics, Multipole borehole acoustic waveform: Synethtic logs with beds and borehole washouts
-# Mittet and Renlie (1996), Geophysics, High-order, finite-difference modeling of multipole logging in formations with anisotropic attenuation and elasticity, 61, 21-33.
-# (z,r): z vertical downward
-#
-#
-#
-# Vp,Vs,Rho are defined at (z,r), and constant within the cell of (z,r),(z+dz,r),(z,r+dr),(z+dz,r+dr)
-# --> (z,r) is the upper left corner of the grid
-#
-#--Redifining material parameters for Biot poroelasticity--
-# H, C, M, mu, rhof, rho, k, eta, phi : See Ou and Wang (2019, doi: 10.1093/gji/ggz144
-# will be dependent on --> D1(=0 when k(w)=k0), D2, rho, rhof, M, C, H, mu
-#
-#--Additional field variables for Biot poroelasticitiy--
-# pf, vwr, vwz : fluid pressure, vr and vz
-
-
-
-
-
-
 #--
 # Threads.nthreads() displays number of available threads
 # if ==1, start julia with JULIA_NUM_THREADS=4 julia
@@ -117,12 +21,6 @@ using Printf
 #
 using FDModBiotCyl
 
-#---Loading Functions----
-#include("./PCylFDMod_Ou1st03.jl") #main modules. With acoustic, not good, but ok.
-#include("./Peng06Mod.jl") #Peng's exact solution to B.C.s of plane wave (MOD version. Use this.)
-
-#using Plots
-#gr()
 
 #--Suppressing graphics
 #ENV["GKSwstype"]="nul"
@@ -156,44 +54,60 @@ function drawmodel(Field_Var,nz,dz,nr,dr,src_index,index_allrec,nrec,LPML_r,LPML
 end
 
 
-function tmp_makemodel()
-#poroelasticity version
+function makemodel_3L()
+   #Necessary input matrices to the main loop function are:
+   #Rho: Bulk density
+   #Rhof: Fluid density
+   #M,C,H: Poroelastic moduli
+   #G: Formation shear modulus
+   #D1,D2: Poroelastic moduli in Ou's formulation
+   #Flag_AC,Flag_E: flag specifying acoustic region or elastic region
+   #Other input parameters to the main loop function are:
+   #ir_wall: grid number in the r direction at which a borehole wall starts (single value)
+   #
+   # This function creates the above input parameters assuming a borehole with a constant radius
+   # embedded in a three-layer medium.
+   # The medium is a thin poroelastic layer sandwiched between two elastic layers
 
-   nr=301
-   nz=701 #for back2
+   #Model size
+   nr=301 #samples
+   nz=701 #samples
+   dr=0.01 #meter
+   dz=0.2 #meter
 
-
-
-   dr=0.01 #A3-A5
-   dz=0.2 #A3
-
-   #--poroelastic parameters (Sidler's)
-   #solid phase
+   #==============================================
+   Initializing poroelastic parameters (Sidler's)
+   ==============================================#
+   #First creating Sidler's poroelastic parameters and then converting to
+   #necessary parameters for our FD
+   #----solid phase-----
    Km=zeros(nz,nr) #frame
    Ks=zeros(nz,nr) #grain
    G=zeros(nz,nr) #bulk
-   Rho=zeros(nz,nr) #bulk (weighting average of Rhos and Rhof)
+   Rho=zeros(nz,nr) #bulk (weighted average of Rhos and Rhof)
    Rhos=zeros(nz,nr) #grain
-
-   #fluid phase
+   #---fluid phase----
    Kf=zeros(nz,nr)
    Rhof=zeros(nz,nr)
    Kappa0=zeros(nz,nr) #static permeability (m^2, 1D=9.869E-13m^2)
    Eta=zeros(nz,nr) #dynamic viscosity Pa.s=kg/(m.s)
-
-   #other parameters
+   #---other parameters---
    Phi=zeros(nz,nr)
    Tot=zeros(nz,nr) #Tortuosity factor (see Sidler 2014)
-   #---end poroelastic parameters
+   #End initializing poroelastic parameters
 
-   #-Fluid all equivalent
+   #==============================================
+   Fluid parameters
+   ==============================================#
+   #Assuming that fluid properties are identical everywhere
    Kf[:,:]=ones(nz,nr)*2.25*10^9
    Rhof[:,:]=ones(nz,nr)*1000
    Kappa0[:,:]=ones(nz,nr)*1*9.869*10^(-13) #m^2
    Eta[:,:]=ones(nz,nr)*1.0*10^(-3) #water 1E-3 Pa.s
 
-
-   #--homogeneous media
+   #==============================
+    Background poroelastic medium
+   ==============================#
    Phi[:,:]=ones(nz,nr)*0.3
    #--Tortuosity factor from Sidler
    #Tot=0.5*(ones(nz,nr)+1 ./Phi) #Empirical formula (see Sidler)
@@ -228,25 +142,18 @@ function tmp_makemodel()
    G[:,:]=Vs_dry^2*Rho_dry[:,:]
    Km[:,:]=Vp_dry^2*Rho_dry[:,:]-4/3*G[:,:]
    Rho=(ones(nz,nr)-Phi).*Rhos+Phi.*Rhof
-   #
 
-
-
-
-
-   #--additional borehole (acoustic media)
+   #========================================
+   Inclusion of a borehole (acoustic media)
+   ========================================#
    Flag_AC=zeros(nz,nr)
-   #
-   #ir_wall=Int(round(0.1/dr))
    ir_wall=6 #A3-A5
    for iz=1:nz
        Flag_AC[iz,1:ir_wall]=ones(ir_wall)
        Rho[iz,1:ir_wall]=ones(ir_wall)*Rhof[1,1] #Rho=Rhof
-       #--
        G[iz,1:ir_wall]=ones(ir_wall)*0.0 #G=0
        Phi[iz,1:ir_wall]=ones(ir_wall) #Phi=1
        Km[iz,1:ir_wall]=ones(ir_wall)*0.0 #Km=0 (G=0,phi=0->M=C=H=Kf, Ou's)
-       #--
 #       Tot[iz,1:ir]=Phi[iz,1:ir] #Tot=Phi (-> D1=rhof, Ou's)
 #       Tot[iz,1:ir]=Phi[iz,1:ir] #Tot=Phi (-> D1=1, Guan's)
        Eta[iz,1:ir_wall]=ones(ir_wall)*0.0 #eta=0 (-> D2=0, Ou's)
@@ -256,9 +163,13 @@ function tmp_makemodel()
 
 
 
+   #==========================
+   Inclusion of Top and Bottom
+   Elastic Layers
+   ==========================#
    #3Layer model (Elastic-PoroElastic-Elastic)
    #boundary @iz=271, L~1m or k=5samples?
-   #== --additional elastic media
+   #==
    # background 1
    Vp_elastic=4000.0 #Or, Specify K_elastic
 #   K_elastic=1.12*1E10 #Or, Specify Vp_elastic
@@ -274,7 +185,7 @@ function tmp_makemodel()
    #
 
 #
-   for iz=1:270 #Upper Elastic media
+   for iz=1:270 #Upper Elastic medium
 
        G_elastic=Vs_elastic^2*Rho_elastic
        K_elastic=Vp_elastic^2*Rho_elastic-4/3*G_elastic #Activate here if you have specified Vp_elastic
@@ -291,8 +202,7 @@ function tmp_makemodel()
        Kappa0[iz,ir_wall+1:end]=ones(nr-ir_wall)*0.0 #k0=0 (-> D1=D2=Inf, Ou's)
    end
 
-#==
-   for iz=276:nz #Lower Elastic media
+   for iz=276:nz #Lower Elastic medium
 
        G_elastic=Vs_elastic^2*Rho_elastic
        K_elastic=Vp_elastic^2*Rho_elastic-4/3*G_elastic #Activate here if you have specified Vp_elastic
@@ -308,33 +218,6 @@ function tmp_makemodel()
        #--
        Kappa0[iz,ir_wall+1:end]=ones(nr-ir_wall)*0.0 #k0=0 (-> D1=D2=Inf, Ou's)
    end
-==#
-#
-
-#==TMPTMP everywhere elastic TMPTMP
-   K_elastic=1.12*1E10 #Or, Specify Vp_elastic
-   Vs_elastic=2000.0
-#   Vs_elastic=1500.0
-   Rho_elastic=2800.0
-
-   for iz=501:nz
-   #   for iz=1:nz
-
-       G_elastic=Vs_elastic^2*Rho_elastic
-   #       K_elastic=Vp_elastic^2*Rho_elastic-4/3*G_elastic #Activate here if you have specified Vp_elastic
-
-       Flag_E[iz,ir+1:end]=ones(nr-ir)
-       Rho[iz,ir+1:end]=ones(nr-ir)*Rho_elastic #Rho=Rho_elastic
-       Rhof[iz,ir+1:end]=ones(nr-ir)*Rho_elastic #Rhof=Rho_elastic
-       G[iz,ir+1:end]=ones(nr-ir)*G_elastic #G=Gs (Ou's)
-       #--
-       Phi[iz,ir+1:end]=ones(nr-ir)*0.0 #Phi=0
-       Km[iz,ir+1:end]=ones(nr-ir)*K_elastic #Km
-       Ks[iz,ir+1:end]=ones(nr-ir)*K_elastic #Ks=Km (-> M=Inf, Ou's)
-       #--
-       Kappa0[iz,ir+1:end]=ones(nr-ir)*0.0 #k0=0 (-> D1=D2=Inf, Ou's)
-   end
-==# #TMPTMP everywhere elastic TMPTMP
 
 
    #--Converting Sidler's param into Ou's param
@@ -348,16 +231,13 @@ function tmp_makemodel()
    #G as is
    D1=Tot.*Rhof./Phi #(1+2/m)*alpha_inf*rhof/phi
    D2=Eta./Kappa0
-#   D1=ones(nz,nr)*(1+2/8)*3*1000/0.2
-#   D2=ones(nz,nr)*1E-3/(1*1E-12)
 
-   #correction of H and C for elastic media
+   #Correction of H and C for elastic media
    for ir=1:nr
       for iz=1:nz
          if(Flag_E[iz,ir]==1)
             H[iz,ir]=Ks[iz,ir]+4/3*G[iz,ir]
             C[iz,ir]=Ks[iz,ir] #Ou's
-#            C[iz,ir]=0.0 #C does not matter!
          end
 
          if(Flag_AC[iz,ir]==1)
@@ -538,8 +418,8 @@ function make_receivers()
    nrec_PE=nr
    recgeom_PE=zeros(nrec_PE,2) #(z,r)
    for irec=1:nrec_PE
-#         recgeom_PE[irec,1]=(273-1)*dz
-      recgeom_PE[irec,1]=(320-1)*dz
+         recgeom_PE[irec,1]=(273-1)*dz
+#      recgeom_PE[irec,1]=(320-1)*dz
       recgeom_PE[irec,2]=dr*(irec-1)
    end
    #--Receivers without interpolation
@@ -573,7 +453,7 @@ Flag_vf_zero=get_Flag_vf_zero(Flag_AC,Flag_E,nr,nz)
 divV=zeros(nz,nr)
 curV=zeros(nz,nr)
 
-#initilize matrices of PML
+#initializing matrices of PML
 Prz_T,Pzz_T,Rz_T,Srz_T,PzzPE_T,RzPE_T,
 Prz_B,Pzz_B,Rz_B,Srz_B,PzzPE_B,RzPE_B,
 Prr_R,Qrp_R,Pzr_R,Qzp_R,Rr_R,Rp_R,Rrz_R,PrrPE_R,RrPE_R,RpPE_R,
@@ -593,6 +473,7 @@ vz_old=zeros(nz,nr)
 vfr_old=zeros(nz,nr)
 vfz_old=zeros(nz,nr)
 
+#to check the Skempton coefficient
 mean_tii=zeros(nz,nr)
 
 # Making sure RightBC for stress (zero values are trp and trz)
@@ -601,10 +482,8 @@ ApplyBCRight_stress!(vr,vz, #Use with flag_zero=1 (see ApplyBCRight_stress1D01)
     G,nr,nz,dr,dz,dt)
 
 #error()
-#@showprogress for ii=1:nt
-@showprogress for ii=1:1001
-#for ii=1:1
-
+@showprogress for ii=1:nt
+#@showprogress for ii=1:1001
 
 
 #----Time at (ii-1)*dt---(updating velocities)-----
@@ -616,7 +495,7 @@ PML_save_vel!(memT_vr,memT_vz,memT_vfr,memT_vfz,
               vr,vz,vfr,vfz,nr,nz,LPML_z,LPML_r)
 #println("update vel")
 
-#keep current values before updating velocity for Acoustic-Poroelastic BC later
+#Copying the current velocity values as _old in order to apply Acoustic-Poroelastic BC later
 mycopy_mat(vr,vr_old,nz,nr)
 mycopy_mat(vz,vz_old,nz,nr)
 mycopy_mat(vfr,vfr_old,nz,nr)
@@ -641,10 +520,6 @@ PML_update_vel!(vr,vz,trr,tpp,tzz,trz,vfr,vfz,pf,
               Prr_BR,Qrp_BR,Pzr_BR,Qzp_BR,Rr_BR,Rp_BR,Rrz_BR,
               PrrPE_BR,RrPE_BR,RpPE_BR,
               LPML_z,LPML_r)
-#println("update vel Left")
-#if(ii==1)
-#   error()
-#end
 
 # Making sure RightBC for velocity (zero values are vr)
 ApplyBCRight_vel!(vr,vz,
@@ -661,8 +536,7 @@ ApplyBCLeft_vel!(vr,vz,trr,tpp,tzz,trz,vfr,vfz,pf,
                           Prz_B,Pzz_B,PzzPE_B,
                           LPML_z)
 
-#---Fluid-PE BC @borehole wall (test): replacing velocity values
-#ir_wall=10
+#Boundary conditions at the borehole wall (Fluid and PoroElastic media): replacing velocity values
 update_vr_vfr_1st_vertical(vr,trr,tpp,tzz,trz,vfr,pf,
     vr_old,vfr_old,
     Rho,Rhof,D1,D2,nr,nz,dr,dz,dt,LPML_z,
@@ -735,9 +609,9 @@ ApplyBCLeft_stress!(vr,vz,trr,tpp,tzz,trz,vfr,vfz,pf,
 #srcapply!(tpp,src_index,src_dn,srcamp)
 
 
-#---Additional BC when Flag_Acoustic/Flag_Elastic
-ApplyBC_stress_AcousticMedia_TEST!(trr,tpp,tzz,trz,pf,Flag_AC,nr,nz)
-ApplyBC_stress_ElasticMedia_Ou!(pf,Flag_E,nr,nz)
+#Additional conditions when Flag_Acoustic/Flag_Elastic
+ApplyBC_stress_AcousticMedia_TEST!(trr,tpp,tzz,trz,pf,Flag_AC,nr,nz) #when Flag_AC==1, then set pf=-(trr+tpp+tzz)/3 and trr=tpp=tzz=-pf
+ApplyBC_stress_ElasticMedia_Ou!(pf,Flag_E,nr,nz) #when Flag_E==1, then set pf=0
 
 
 #--PML: update memory variables for velocity (Pxx and Qxx) using stress at two time steps
@@ -759,7 +633,7 @@ getRecData_from_index!(vr,rec_vr,index_allrec_vr,nrec,ii)
 getRecData_from_index!(vz,rec_vz,index_allrec_vz,nrec,ii)
 getRecData_from_index!(trr,rec_tii,index_allrec_tii,nrec,ii)
 
-#Along porous layer
+#Additional receiver array along porous layer
 getRecData_from_index!(vfr,rec_vfr_PE,index_allrec_vfr_PE,nrec_PE,ii)
 getRecData_from_index!(pf,rec_pf_PE,index_allrec_pf_PE,nrec_PE,ii)
 mean_tii=(trr+tpp+tzz)/3
@@ -806,11 +680,7 @@ start=time()
 General variables
 ======================#
 
-#==time samples
-const dt=0.125E-5
-const nt=16001
-const T=(nt-1)*dt
-==#
+#time samples
 dt=0.125E-5
 nt=16001
 T=(nt-1)*dt
@@ -822,9 +692,9 @@ LPML_r=51
 LPML_z=61
 
 #======================
-Creating model
+Creating a model
 ======================#
-nr,nz,dr,dz,Rho,Rhof,M,C,H,G,D1,D2,Flag_AC,Flag_E,ir_wall=tmp_makemodel()
+nr,nz,dr,dz,Rho,Rhof,M,C,H,G,D1,D2,Flag_AC,Flag_E,ir_wall=makemodel_3L()
 #error()
 
 #======================
@@ -837,27 +707,31 @@ check_stability01(dt,dz,Vmax,0)
 #======================
 Creating src wavelet
 ======================#
-f0=200 #src Freq Ou
+f0=200 #src Freq
 delay=1/f0*1.0
-src_func=myricker2(tvec,f0,delay,2) #when using 2nd derivative Gaussian (good for DWI)
-#src_func=myricker2(tvec,f0,delay,1) #when using 1st derivative Gaussian (Randall?)
-#src_func=myricker2(tvec,f0,delay,3) #when using 3rd derivative Gaussian
+src_func=myricker2(tvec,f0,delay,2) #when using 2nd derivative Gaussian (Ricker wavelet with a negative sign)
 tmp_maxamp=maximum(map(abs,src_func))
 src_func=src_func/tmp_maxamp
+#Note: Peng_solution() assumes unit vz. Therefore, src_func above will be interpreted as vz.
+#The following scaling of 1/(rho*Vp) makes the incident wave unit amplitude Ricker wavelet for tzz.
+src_func=src_func/(2500*5000)
+
+
 display(plot(tvec,src_func[:],title="src function"))
 tmpfilename_src=string(@__DIR__,"/src_function.png")
 png(tmpfilename_src)
 println("Source signature figure saved in ",tmpfilename_src)
 
 #================================
-Src depth for initial plane wave
+Src depth where an initial plane P wave
+starts to propagate downward
 ================================#
 srcdepth=28. #meter
-
 
 #==============================
 Initializig field variables
 ==============================#
+# Initial conditions of a plane P wave
 vr,vz,trr,tpp,tzz,trz,
 vfr,vfz,pf,
 vz_srcBC,vr_srcBC,
@@ -867,7 +741,9 @@ trz_init,
 src_iz,noffset,
 f0=initialize_planewave(nr,nz,dr,dz,ir_wall,Rho,H,G,nt,tvec,dt,src_func,srcdepth,f0,delay)
 
-LPML_r,LPML_z,PML_Wr,PML_Wz,PML_IWr,PML_Wr2,PML_Wz2,PML_IWr2=init_PML_profile(LPML_r,LPML_z,Vmax,dr,dz,nr)
+# Initializing PML field variables
+LPML_r,LPML_z,PML_Wr,PML_Wz,
+PML_IWr,PML_Wr2,PML_Wz2,PML_IWr2=init_PML_profile(LPML_r,LPML_z,Vmax,dr,dz,nr,f0)
 #PML_check(LPML_r,LPML_z,Vmax,dr,dz,f0)
 
 
@@ -885,7 +761,7 @@ Check model
 ==============================#
 src_index=[1 1]; #dummy
 drawmodel(vz_init,nz,dz,nr,dr,src_index,index_allrec_tii,nrec,LPML_r,LPML_z)
-
+#error()
 
 #==============================
 Snapshot settings
@@ -909,10 +785,6 @@ main_loop!(nr,nz,dr,dz,Rho,Rhof,M,C,H,G,D1,D2,dt,nt,T,
    snapshots_vr,snapshots_vz,snapshots_trr,nsnap,itvec_snap,nskip)
 
 
-#finalizing
-#Vp1D,Vs1D,Rho1D,Caliper1D,Caliper_ir1D=model1D_load_Nojima(tmpfilename_JLD)
-#save_data(zsrc,tvec,nr,nz,dr,dz,m,dt,nt,T,rec_tii,src_func,index_allrec_tii,src_index,snapshots_trr,itvec_snap,Vp1D,Vs1D,Rho1D,Caliper1D,Caliper_ir1D)
-#end
 
 CPUtoc()
 println("elapsed real time: ", round(time() - start;digits=3)," seconds")

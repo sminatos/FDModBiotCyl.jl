@@ -1,21 +1,3 @@
-#Poroelastic FDTD in cylindrical coordinate
-#Guan and Hu (2011), Coomun. Comput. Phys., doi: 10.4208/cicp.020810.161210a
-#Ou and Wang (2019), Geophys. J. Int., doi: 10.1093/gji/ggz144
-#--Geometry convention---
-# (z,r): z vertical downward
-# Material parameters are defined at (z,r), and constant within the cell of (z+dz/2,r+dr/2),(z-dz/2,r+dr/2),(z-dz/2,r-dr/2),(z+dz/2,r-dr/2)
-# --> (z,r) is the center of the cell, where tzz,trr,tpp,pf are defined.
-#
-# index (k,j) corresponds to:
-# tzz(z,r),tpp(z,r),trr(z,r),pf(z,r),
-# vr(z,r+dr/2),vfr(z,r+dr/2),
-# trz(z+dz/2,r+dr/2),
-# vz(z+dz/2,r),vfz(z+dz/2,r)
-#
-# Origin (z=0,r=0) or (k=1,j=1) is at the location of tzz, trr, tpp, and pf.
-# The field parameters located at r=0 are tzz,trr,tpp,pf,vz,vfz.
-# The field parameters located at z=0 are tzz,trr,tpp,pf,vr,vfr.
-#
 #--
 # Threads.nthreads() displays number of available threads
 # if ==1, start julia with JULIA_NUM_THREADS=4 julia
@@ -72,36 +54,36 @@ end
 Creating two layer model
 =========================#
 function makemodel_homogeneous_Elastic()
-#Nessesary input matrices to main loop function are:
-#Rho: Bulk density
-#Rhof: Fluid density
-#M,C,H: Poroelastic moduli
-#G: Formation shear moduli
-#D1,D2: Poroelastic moduli in Ou's formulation
-#Flag_AC,Flag_E: flag specifying acoustic region or elastic region
-#Other input parameters to main loop function are:
-#ir_wall: grid number in r direction where a borehole wall starts (single value)
-#
-# This function creates above input paramers assuming a borehole embedded in
-# homogeneous elastic media
+   #Necessary input matrices to the main loop function are:
+   #Rho: Bulk density
+   #Rhof: Fluid density
+   #M,C,H: Poroelastic moduli
+   #G: Formation shear modulus
+   #D1,D2: Poroelastic moduli in Ou's formulation
+   #Flag_AC,Flag_E: flag specifying acoustic region or elastic region
+   #Other input parameters to the main loop function are:
+   #ir_wall: grid number in the r direction at which a borehole wall starts (single value)
+   #
+   # This function creates the above input parameters assuming a borehole embedded in
+   # an homogeneous elastic medium
 
-#Model size
-   nr=51 #samples
-   nz=301 #samples
-   dr=0.1 #meter
-   dz=0.5 #meter
+   #Model size
+   nr=351 #samples
+   nz=1001 #samples
+   dr=0.005 #meter
+   dz=0.005 #meter
 
 
    #==============================================
    Initializing poroelastic parameters (Sidler's)
    ==============================================#
    #First creating Sidler's poroelastic parameters and then converting to
-   #nessesary parameters for our FD
+   #necessary parameters for our FD
    #----solid phase-----
    Km=zeros(nz,nr) #frame
    Ks=zeros(nz,nr) #grain
    G=zeros(nz,nr) #bulk
-   Rho=zeros(nz,nr) #bulk (weighting average of Rhos and Rhof)
+   Rho=zeros(nz,nr) #bulk (weighted average of Rhos and Rhof)
    Rhos=zeros(nz,nr) #grain
    #---fluid phase----
    Kf=zeros(nz,nr)
@@ -111,7 +93,7 @@ function makemodel_homogeneous_Elastic()
    #---other parameters---
    Phi=zeros(nz,nr)
    Tot=zeros(nz,nr) #Tortuosity factor (see Sidler 2014)
-   #End initilizing poroelastic parameters
+   #End initializing poroelastic parameters
 
    #==============================================
    Fluid parameters
@@ -126,8 +108,7 @@ function makemodel_homogeneous_Elastic()
    ========================================#
    Flag_AC=zeros(nz,nr)
    #Borehole wall (homogeneous radius)
-   #ir_wall=Int(round(0.1/dr))
-   ir_wall=11
+   ir_wall=Int(round(0.1/dr))
 
    for iz=1:nz
        Flag_AC[iz,1:ir_wall]=ones(ir_wall)
@@ -143,22 +124,15 @@ function makemodel_homogeneous_Elastic()
    Homogeneous Elastic model
    ==========================#
    Flag_E=zeros(nz,nr)
-#   Vp1_elastic=5800.0 #Or, Specify K_elastic
-#   Vs1_elastic=3200.0
-#   Rho1_elastic=8000.0
-   Vp1_elastic=1500.0 #Or, Specify K_elastic
-   Vs1_elastic=0.0
-   Rho1_elastic=1000.0
+   Vp1_elastic=2500.0 #Or, Specify K_elastic
+   Vs1_elastic=2000.0
+   Rho1_elastic=2500.0
 
-#tmp expected CT
-   G_elastic=Vs1_elastic^2*Rho1_elastic
-   Keff=1/(1/(2.25*10^9)+1/G_elastic)
-   CT=sqrt(Keff/1000)
 #
    for iz=1:nz #Elastic media
 
        G_elastic=Vs1_elastic^2*Rho1_elastic
-       K_elastic=Vp1_elastic^2*Rho1_elastic-4/3*G_elastic #Activate here if you have specified Vp_elastic
+       K_elastic=Vp1_elastic^2*Rho1_elastic-4/3*G_elastic
 
        Flag_E[iz,ir_wall+1:end]=ones(nr-ir_wall)
        Rho[iz,ir_wall+1:end]=ones(nr-ir_wall)*Rho1_elastic #Rho=Rho_elastic
@@ -172,44 +146,6 @@ function makemodel_homogeneous_Elastic()
        Kappa0[iz,ir_wall+1:end]=ones(nr-ir_wall)*0.0 #k0=0 (-> D1=D2=Inf, Ou's)
    end
 
-   #inclusion of blockage in the borehole
-#   Vp2_elastic=4500.0 #Or, Specify K_elastic
-#   Vs2_elastic=2500.0
-#   Rho2_elastic=2000.0
-
-   Vp2_elastic=1500.0 #Or, Specify K_elastic
-   Vs2_elastic=0.0
-   Rho2_elastic=1000.0
-
-#   Vp2_elastic=5800.0 #Or, Specify K_elastic
-#   Vs2_elastic=3200.0
-#   Rho2_elastic=8000.0
-
-#   for iz=201:202 #Elastic media
-   for iz=171:nz #Elastic media
-
-       G_elastic=Vs2_elastic^2*Rho2_elastic
-       #TMP
-       #G_elastic=0
-       K_elastic=Vp2_elastic^2*Rho2_elastic-4/3*G_elastic #Activate here if you have specified Vp_elastic
-
-       Flag_E[iz,1:ir_wall]=ones(ir_wall)
-       Rho[iz,1:ir_wall]=ones(ir_wall)*Rho2_elastic #Rho=Rho_elastic
-       Rhof[iz,1:ir_wall]=ones(ir_wall)*Rho2_elastic #Rhof=Rho_elastic
-       G[iz,1:ir_wall]=ones(ir_wall)*G_elastic #G=Gs (Ou's)
-       #--
-       Phi[iz,1:ir_wall]=ones(ir_wall)*0.0 #Phi=0
-       Km[iz,1:ir_wall]=ones(ir_wall)*K_elastic #Km
-       Ks[iz,1:ir_wall]=ones(ir_wall)*K_elastic #Ks=Km (-> M=Inf, Ou's)
-       #--
-       Kappa0[iz,1:ir_wall]=ones(ir_wall)*0.0 #k0=0 (-> D1=D2=Inf, Ou's)
-       #
-       Flag_AC[iz,1:ir_wall]=ones(ir_wall)*0.0
-   end
-
-   #Force elastic (OK)
-   Flag_E=ones(nz,nr)
-   Flag_AC=zeros(nz,nr)
    #=====================================================
    Converting Sidler's poroelastic parameters into Ou's
    =====================================================#
@@ -250,9 +186,7 @@ function drawsnap(Data1,nz,dz,nr,dr,LPML_r,LPML_z)
    zvec=[0:dz:(nz-1)*dz]
    rvec=[0:dr:(nr-1)*dr]
    R=(nr-1)*dr
-   #plt1=heatmap(rvec,zvec,Data1,yflip=true,xlabel="R (m)",ylabel="Z (m)",legend=:none)
-   plt1=heatmap(rvec,zvec,Data1,yflip=true,xlabel="R (m)",ylabel="Z (m)",legend=:none,
-               clims=(-0.01,0.01))
+   plt1=heatmap(rvec,zvec,Data1,yflip=true,xlabel="R (m)",ylabel="Z (m)",legend=:none)
    plot!([0;R],ones(2)*(LPML_z-1)*dz,label="",color=:black)
    plot!([0;R],ones(2)*((nz-LPML_z+1)*dz),label="",color=:black)
    plot!(ones(2)*((nr-LPML_r+1)*dr),[0;(nz-1)*dz],label="",color=:black)
@@ -279,7 +213,7 @@ function main_loop!(nr,nz,dr,dz,Rho,Rhof,M,C,H,G,D1,D2,dt,nt,T,
 #--
 Flag_vf_zero=get_Flag_vf_zero(Flag_AC,Flag_E,nr,nz)
 
-#initilize matrices of PML
+#initializing matrices of PML
 Prz_T,Pzz_T,Rz_T,Srz_T,PzzPE_T,RzPE_T,
 Prz_B,Pzz_B,Rz_B,Srz_B,PzzPE_B,RzPE_B,
 Prr_R,Qrp_R,Pzr_R,Qzp_R,Rr_R,Rp_R,Rrz_R,PrrPE_R,RrPE_R,RpPE_R,
@@ -305,10 +239,7 @@ ApplyBCRight_stress!(vr,vz, #Use with flag_zero=1 (see ApplyBCRight_stress1D01)
     trz,
     G,nr,nz,dr,dz,dt)
 
-#error()
 @showprogress for ii=1:nt
-#@showprogress for ii=1:201
-#for ii=1:1
 
 
 
@@ -439,12 +370,8 @@ srcapply!(tpp,src_index,src_dn,srcamp)
 
 
 #---Additional BC when Flag_Acoustic/Flag_Elastic
-ApplyBC_stress_AcousticMedia_TEST!(trr,tpp,tzz,trz,pf,Flag_AC,nr,nz) #pf=-1/3tii
+#ApplyBC_stress_AcousticMedia_TEST!(trr,tpp,tzz,trz,pf,Flag_AC,nr,nz) #pf=-1/3tii
 #ApplyBC_stress_ElasticMedia_Ou!(pf,Flag_E,nr,nz) #when Flag_E==1, then pf=0
-#tmp
-#   for iz=1:nz
-#      trz[iz,1:ir_wall]=ones(ir_wall)*0
-#   end
 
 
 #--PML: update memory variables for velocity (Pxx and Qxx) using stress at two time steps
@@ -474,11 +401,10 @@ check_snap=findall(x -> x==ii,itvec_snap)
 if (length(check_snap)!=0)
    println("ii=",ii)
    cnt_snap=Int(check_snap[1])
-   get_snapshots!(snapshots_vr,snapshots_vz,cnt_snap,vr,vz,nr,nz)
-#   get_snapshots_t!(snapshots_trr,cnt_snap,pf,nr,nz)
-   get_snapshots_t!(snapshots_trr,cnt_snap,tzz,nr,nz)
+   get_snapshots!(snapshots_vr,snapshots_vz,cnt_snap,vfr,vz,nr,nz)
+   get_snapshots_t!(snapshots_trr,cnt_snap,pf,nr,nz)
 
-   drawsnap(snapshots_trr[:,:,cnt_snap],nz,dz,nr,dr,
+   drawsnap(snapshots_vz[:,:,cnt_snap],nz,dz,nr,dr,
             LPML_r,LPML_z)
 
 end
@@ -496,23 +422,19 @@ start=time()
 General variables
 ======================#
 
-#==time samples
-const dt=0.125E-5
-const nt=16001
-const T=(nt-1)*dt
-==#
-dt=1E-5
-nt=5001
+#time samples
+dt=1E-6
+nt=2501
 T=(nt-1)*dt
 tvec=range(0.0,T,length=nt) # range object (no memory allocation)
 tvec=collect(tvec) # a vector
 
 #PML thickness in samples
-LPML_r=30
-LPML_z=30
+LPML_r=60
+LPML_z=60
 
 #======================
-Creating model
+Creating a model
 ======================#
 nr,nz,dr,dz,Rho,Rhof,M,C,H,G,D1,D2,Flag_AC,Flag_E,ir_wall=makemodel_homogeneous_Elastic()
 drawmodel(H,nz,dz,nr,dr,LPML_r,LPML_z)
@@ -528,10 +450,11 @@ check_stability01(dt,dz,Vmax,0)
 #======================
 Creating src wavelet
 ======================#
-f0=50 #src Freq
+#f0=5000 #src Freq
+f0=8000
 delay=1/f0*1.0
 #src_func=myricker2(tvec,f0,delay,2) #when using 2nd derivative Gaussian (good for DWI)
-src_func=myricker2(tvec,f0,delay,1) #when using 1st derivative Gaussian (Randall?)
+src_func=myricker2(tvec,f0,delay,1) #when using 1st derivative Gaussian (Randall)
 #src_func=myricker2(tvec,f0,delay,3) #when using 3rd derivative Gaussian
 tmp_maxamp=maximum(map(abs,src_func))
 src_func=src_func/tmp_maxamp
@@ -544,10 +467,13 @@ println("Source signature figure saved in ",tmpfilename_src)
 Point src geometry
 ================================#
 srcgeom=zeros(1,2) #(z,r)
-#srcgeom[1,1]=(nz-1)*dz/3 #z meter
-srcgeom[1,1]=(nz-1)*dz/2 #z meter
-srcgeom[1,2]=2*dr #r meter
-src_index,src_dn=get_srcindex_monopole(srcgeom,dr,dz)
+srcgeom[1,1]=(nz-1)*dz/3 #z meter
+srcgeom[1,2]=0.1*dr #r meter
+#src_index,src_dn=get_srcindex_monopole(srcgeom,dr,dz)
+#Gaussian point src
+wsize=5 #window size (odd number)
+wsigma=1 #std
+src_index,src_dn=get_srcindex_pGauss(srcgeom,dr,dz,wsize,wsigma)
 
 #error()
 #==============================
@@ -555,7 +481,7 @@ Initializig field variables
 ==============================#
 vr,vz,trr,tpp,tzz,trz,vfr,vfz,pf=init_fields_Por(nz,nr) #
 
-# Initializing PML field variables
+# Initializing PML profile
 LPML_r,LPML_z,PML_Wr,PML_Wz,
 PML_IWr,PML_Wr2,PML_Wz2,PML_IWr2=init_PML_profile(LPML_r,LPML_z,Vmax,dr,dz,nr,f0)
 #PML_check(LPML_r,LPML_z,Vmax,dr,dz,f0)
@@ -599,8 +525,50 @@ main_loop!(nr,nz,dr,dz,Rho,Rhof,M,C,H,G,D1,D2,dt,nt,T,
 CPUtoc()
 println("elapsed real time: ", round(time() - start;digits=3)," seconds")
 
+error("Stopped w/o problem.")
 
-tmp_filename="out.mat"
+
+
+   println("Model drawing...")
+   zvec=[0:dz:(nz-1)*dz]
+   rvec=[0:dr:(nr-1)*dr]
+   R=(nr-1)*dr
+   plt1=heatmap(rvec,zvec,vz,yflip=true,xlabel="R (m)",ylabel="Z (m)",ratio=1)
+   plot!([(src_index[2]-1)*dr],[(src_index[1]-1)*dz],label="",markershape=:circle,markersize=5,markerstrokewidth=0,seriescolor=:red)
+   plot!((index_allrec_tii[:,2]-ones(nrec))*dr,(index_allrec_tii[:,1]-ones(nrec))*dz,label="",markershape=:cross,markersize=5,markerstrokewidth=0,seriescolor=:red)
+   plot!([0;R],ones(2)*(LPML_z-1)*dz,label="",color=:black)
+   plot!([0;R],ones(2)*((nz-LPML_z+1)*dz),label="",color=:black)
+   plot!(ones(2)*((nr-LPML_r+1)*dr),[0;(nz-1)*dz],label="",color=:black)
+   display(plot(plt1))
+
+
+
+
+ns_dwi=1024
+tvec_dwi=collect(range(0,0.003,length=ns_dwi))
+data_dwi = Array{Float32}(undef, ns_dwi, 1); #
+read!("/Users/mminato/work/Git_Projects/FDModBiotCyl.jl/trunk/DWI/DWI/work/dwi_2m_5kHz.bin", data_dwi)
+plot(tvec,rec_tii[:,735]/maximum(rec_tii[:,735]))
+plot!(tvec_dwi+ones(size(tvec_dwi))*0.000065,data_dwi/maximum(data_dwi))
+
+
+ns_dwi=1024
+tvec_dwi=collect(range(0,0.003,length=ns_dwi))
+data_dwi = Array{Float32}(undef, ns_dwi, 1); #
+read!("/Users/mminato/work/Git_Projects/FDModBiotCyl.jl/trunk/DWI/DWI/work/dwi_2m_8kHz.bin", data_dwi)
+plot(tvec,rec_tii[:,735]/maximum(rec_tii[:,735]))
+plot!(tvec_dwi+ones(size(tvec_dwi))*0.00004,data_dwi/maximum(data_dwi))
+
+tmp_filename="out.jld"
+tmp_filename_full=string(@__DIR__,"/",tmp_filename)
+save(tmp_filename_full,
+"tvec",tvec,"nr",nr,"nz",nz,"dr",dr,"dz",dz,"m",m,"dt",dt,"nt",nt,"T",T,"rec_tii",rec_tii,"src_func",src_func,
+"index_allrec_tii",index_allrec_tii,"src_index",src_index,"snapshots_trr",snapshots_trr,
+"itvec_snap",itvec_snap)
+
+
+#tmp_filename="out_reference_back2.mat"
+tmp_filename="out_2L.mat"
 
 iskip_rec=10
 tvec_rec=tvec[1:iskip_rec:end]
@@ -621,9 +589,8 @@ matwrite(tmp_filename_full, Dict(
 #"index_allrec_vr"=>index_allrec_vr,
 #"index_allrec_pf_PE"=>index_allrec_pf_PE,
 #"src_index"=>src_index,
-"snapshots_trr"=>snapshots_trr,
+#"snapshots_trr"=>snapshots_trr,
 #"snapshots_pf"=>snapshots_trr,
 #"snapshots_vr"=>snapshots_vr,
-"H"=>H,
 "snapshots_vz"=>snapshots_vz,
 "itvec_snap"=>itvec_snap); compress = true)

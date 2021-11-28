@@ -57,5 +57,8 @@ The function `main_loop!` in the sample files in `/samples` calculates FD using 
 At an acoustic domain (`Flag_AC`) and an elastic domain (`Flag_E`), it does not evaluate `vfr` and `vfz` and they are zeros. When the entire modeling domain is a poroelastic formation, use `Flag_AC=zeros(nz,nr)` and `Flag_E=zeros(nz,nr)`. When the entire modeling domain is an elastic formation, use `Flag_AC=zeros(nz,nr)` and `Flag_E=ones(nz,nr)`. When the modeling domain contains a combination of acoustic, elastic, and poroelastic formations, it requires adding boundary conditions at an interface between different domains. The last scenario is important in modeling a wavefield in a borehole. Look at `/samples_borehole` for more details.
 
 ## References
+- Randall et al. (1991), Geophysics, 56, 1757-1769
+- Mittet and Renlie (1996), Geophysics, 61, 21-33
 - Guan and Hu (2011), Comun. Comput. Phys., doi: 10.4208/cicp.020810.161210a
+- Sidler et al. (2014), Geophys. J. Int., doi: 10.1093/gji/ggt447
 - Ou and Wang (2019), Geophys. J. Int., doi: 10.1093/gji/ggz144

@@ -6,14 +6,14 @@ using Dierckx
 Creating homogeneous model
 =========================#
 function makemodel_homogeneous_Elastic()
-#Nessesary input matrices to main loop function are:
+#Necessary input matrices to the main loop function are:
 #Rho: Bulk density
 #Rhof: Fluid density
 #M,C,H: Poroelastic moduli
 #G: Formation shear moduli
 #D1,D2: Poroelastic moduli in Ou's formulation
 #Flag_AC,Flag_E: flag specifying acoustic region or elastic region
-# This function creates above input paramers assuming a
+# This function creates the above input parameters assuming a
 # homogeneous elastic media
 
 #Model size
@@ -27,12 +27,12 @@ function makemodel_homogeneous_Elastic()
    Initializing poroelastic parameters (Sidler's)
    ==============================================#
    #First creating Sidler's poroelastic parameters and then converting to
-   #nessesary parameters for our FD
+   #necessary parameters for our FD
    #----solid phase-----
    Km=zeros(nz,nr) #frame
    Ks=zeros(nz,nr) #grain
    G=zeros(nz,nr) #bulk
-   Rho=zeros(nz,nr) #bulk (weighting average of Rhos and Rhof)
+   Rho=zeros(nz,nr) #bulk (weighted average of Rhos and Rhof)
    Rhos=zeros(nz,nr) #grain
    #---fluid phase----
    Kf=zeros(nz,nr)
@@ -42,7 +42,7 @@ function makemodel_homogeneous_Elastic()
    #---other parameters---
    Phi=zeros(nz,nr)
    Tot=zeros(nz,nr) #Tortuosity factor (see Sidler 2014)
-   #End initilizing poroelastic parameters
+   #End initializing poroelastic parameters
 
    #==============================================
    Fluid parameters
@@ -181,7 +181,7 @@ function main_loop!(nr,nz,dr,dz,Rho,Rhof,M,C,H,G,D1,D2,dt,nt,T,
 #--
 Flag_vf_zero=get_Flag_vf_zero(Flag_AC,Flag_E,nr,nz)
 
-#initilize matrices of PML
+#initialize matrices of PML
 Prz_T,Pzz_T,Rz_T,Srz_T,PzzPE_T,RzPE_T,
 Prz_B,Pzz_B,Rz_B,Srz_B,PzzPE_B,RzPE_B,
 Prr_R,Qrp_R,Pzr_R,Qzp_R,Rr_R,Rp_R,Rrz_R,PrrPE_R,RrPE_R,RpPE_R,

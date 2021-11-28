@@ -55,21 +55,19 @@ end
 Creating homogeneous model
 =========================#
 function makemodel_homogeneous_Elastic()
-#Nessesary input matrices to main loop function are:
-#Rho: Bulk density
-#Rhof: Fluid density
-#M,C,H: Poroelastic moduli
-#G: Formation shear moduli
-#D1,D2: Poroelastic moduli in Ou's formulation
-#Flag_AC,Flag_E: flag specifying acoustic region or elastic region
-# This function creates above input paramers assuming a
-# homogeneous elastic media
+   #Necessary input matrices to the main loop function are:
+   #Rho: Bulk density
+   #Rhof: Fluid density
+   #M,C,H: Poroelastic moduli
+   #G: Formation shear modulus
+   #D1,D2: Poroelastic moduli in Ou's formulation
+   #Flag_AC,Flag_E: flag specifying acoustic region or elastic region
+   # This function creates the above input parameters assuming a
+   # homogeneous elastic media
 
-#Model size
+   # Model size
    nr=251 #samples
    nz=351 #samples
-#   nr=51 #samples
-#   nz=101 #samples
    dr=0.5 #meter
    dz=0.5 #meter
 
@@ -78,12 +76,12 @@ function makemodel_homogeneous_Elastic()
    Initializing poroelastic parameters (Sidler's)
    ==============================================#
    #First creating Sidler's poroelastic parameters and then converting to
-   #nessesary parameters for our FD
+   #necessary parameters for our FD
    #----solid phase-----
    Km=zeros(nz,nr) #frame
    Ks=zeros(nz,nr) #grain
    G=zeros(nz,nr) #bulk
-   Rho=zeros(nz,nr) #bulk (weighting average of Rhos and Rhof)
+   Rho=zeros(nz,nr) #bulk (weighted average of Rhos and Rhof)
    Rhos=zeros(nz,nr) #grain
    #---fluid phase----
    Kf=zeros(nz,nr)
@@ -93,7 +91,7 @@ function makemodel_homogeneous_Elastic()
    #---other parameters---
    Phi=zeros(nz,nr)
    Tot=zeros(nz,nr) #Tortuosity factor (see Sidler 2014)
-   #End initilizing poroelastic parameters
+   #End initializing poroelastic parameters
 
    #==============================================
    Fluid parameters
@@ -114,7 +112,7 @@ function makemodel_homogeneous_Elastic()
    Rho1_elastic=2000.0
 
    G_elastic=Vs1_elastic^2*Rho1_elastic
-   K_elastic=Vp1_elastic^2*Rho1_elastic-4/3*G_elastic #Activate here if you have specified Vp_elastic
+   K_elastic=Vp1_elastic^2*Rho1_elastic-4/3*G_elastic
 
    Flag_E=ones(nz,nr)
    Rho=Rho1_elastic*ones(nz,nr) #Rho=Rho_elastic
@@ -245,7 +243,7 @@ function main_loop!(nr,nz,dr,dz,Rho,Rhof,M,C,H,G,D1,D2,dt,nt,T,
 #--
 Flag_vf_zero=get_Flag_vf_zero(Flag_AC,Flag_E,nr,nz)
 
-#initilize matrices of PML
+#initialize matrices of PML
 Prz_T,Pzz_T,Rz_T,Srz_T,PzzPE_T,RzPE_T,
 Prz_B,Pzz_B,Rz_B,Srz_B,PzzPE_B,RzPE_B,
 Prr_R,Qrp_R,Pzr_R,Qzp_R,Rr_R,Rp_R,Rrz_R,PrrPE_R,RrPE_R,RpPE_R,
@@ -266,17 +264,8 @@ vfr_old=zeros(nz,nr)
 vfz_old=zeros(nz,nr)
 
 
-# Making sure RightBC for stress (zero values are trp and trz)
-#ApplyBCRight_stress!(vr,vz, #Use with flag_zero=1 (see ApplyBCRight_stress1D01)
-#    trz,
-#    G,nr,nz,dr,dz,dt)
 
-#error()
 @showprogress for ii=1:nt
-#@showprogress for ii=1:301
-#for ii=1:1
-
-#@show Pzz_T[1,10],Srz_T[1,10]
 
 #----Time at (ii-1)*dt---(updating velocities)-----
 
@@ -296,8 +285,6 @@ PML_save_vel!(memT_vr,memT_vz,memT_vfr,memT_vfz,
 # Main velocity update!
 update_velocity_1st_Por!(vr,vz,trr,tpp,tzz,trz,vfr,vfz,pf,Rho,Rhof,D1,D2,Flag_vf_zero,nr,nz,dr,dz,dt,LPML_z,LPML_r)
 
-#error()
-
 #PML: update velocity
 PML_update_vel!(vr,vz,trr,tpp,tzz,trz,vfr,vfz,pf,
               Rho,Rhof,D1,D2,Flag_vf_zero,nr,nz,dr,dz,dt,
@@ -312,10 +299,6 @@ PML_update_vel!(vr,vz,trr,tpp,tzz,trz,vfr,vfz,pf,
               Prr_BR,Qrp_BR,Pzr_BR,Qzp_BR,Rr_BR,Rp_BR,Rrz_BR,
               PrrPE_BR,RrPE_BR,RpPE_BR,
               LPML_z,LPML_r)
-#println("update vel Left")
-#if(ii==1)
-#   error()
-#end
 
 # Making sure RightBC for velocity (zero values are vr)
 ApplyBCRight_vel!(vr,vz,
@@ -351,27 +334,6 @@ PML_update_memRS!(Rz_T,Srz_T,RzPE_T,
                   memR_vr,memR_vz,memR_vfr,memR_vfz,
                   vr,vz,vfr,vfz,nr,nz,dr,dz,dt,LPML_z,LPML_r,PML_Wz,PML_Wr,PML_IWr,PML_Wz2,PML_Wr2,PML_IWr2)
 
-#tmptmp
-#Rr_R=Rr_R*0
-#Rp_R=Rp_R*0
-#Rrz_R=Rrz_R*0
-#RrPE_R=RrPE_R*0
-#RpPE_R=RpPE_R*0
-
-#--killing r-stretching
-#Rr_BR=Rr_BR*0 #this is the culprit
-#Rp_BR=Rp_BR*0
-#Rz_BR
-#Rrz_BR=Rrz_BR*0
-#Srz_BR,
-
-#Rr_TR=Rr_TR*0
-
-#--killing z-stretching
-#Rz_BR=Rz_BR*0
-#Rrz_BR=Rrz_BR*0
-#Rz_TR=Rz_TR*0
-#Rrz_TR=Rrz_TR*0
 
 #--src injection (velocity)
 srcamp=src_func[ii]
@@ -388,12 +350,10 @@ PML_save_stress!(memT_trr,memT_tpp,memT_tzz,memT_trz,memT_pf,
                  memR_trr,memR_tpp,memR_tzz,memR_trz,memR_pf,
                  trr,tpp,tzz,trz,pf,nr,nz,LPML_z,LPML_r)
 
-#println("update stress")
 
 # Main stress update!
 update_stress_1st_Por!(vr,vz,trr,tpp,tzz,trz,vfr,vfz,pf,
      M,C,H,G,nr,nz,dr,dz,dt,LPML_z,LPML_r)
-#error()
 
 #PML: stress update
 PML_update_stress!(vr,vz,trr,tpp,tzz,trz,vfr,vfz,pf,
@@ -412,14 +372,11 @@ ApplyBCRight_stress!(vr,vz, #Use with flag_zero=1 (see ApplyBCRight_stress1D01)
      G,nr,nz,dr,dz,dt)
 
 #---stress B.Cs
-#println("update stress Left")
-#ApplyBCLeft_stress_2nd!(vr,vphi,vz,trr,tpp,tzz,trp,trz,tpz,lmat,mmat,m,nr,nz,dr,dz)
 ApplyBCLeft_stress!(vr,vz,trr,tpp,tzz,trz,vfr,vfz,pf,
                     M,C,H,G,nr,nz,dr,dz,dt,
                     Rz_T,Srz_T,RzPE_T,
                     Rz_B,Srz_B,RzPE_B,
                     LPML_z)
-#return
 
 #--src injection (stress:monopole src)
 #srcamp=-src_func[ii]
@@ -445,18 +402,6 @@ PML_update_memPQ!(Prz_T,Pzz_T,PzzPE_T,
                   memR_trr,memR_tpp,memR_tzz,memR_trz,memR_pf,
                   trr,tpp,tzz,trz,pf,nr,nz,dr,dz,dt,LPML_z,LPML_r,PML_Wz,PML_Wr,PML_IWr,PML_Wz2,PML_Wr2,PML_IWr2)
 
-#--tmptmp
-#Prr_R=Prr_R*0
-#Qrp_R=Qrp_R*0
-#Pzr_R=Pzr_R*0
-#Qzp_R=Qzp_R*0
-#PrrPE_R=PrrPE_R*0
-
-#killing z-stretching
-#Pzz_BR=Pzz_BR*0
-#Prz_BR=Prz_BR*0
-#Pzz_TR=Pzz_TR*0
-#Prz_TR=Prz_TR*0
 
 #-----End of updating field----
 
@@ -467,28 +412,6 @@ getRecData_from_index!(vz,rec_vz,index_allrec_vz,nrec,ii)
 #getRecData_from_index!(trr,rec_tii,index_allrec_tii,nrec,ii)
 
 
-#plt1=plot(Pzz_B[:,1])
-#plot!(-Pzz_T[2:end,1])
-#plt1=plot(Rz_B[:,1])
-#plot!(Rz_T[:,1])
-#plt1=plot(tzz[1:45,1])
-#plot!(reverse(tzz[nz-45:nz,1],1))
-
-#plt1=plot(Rz_BR[2,:])
-#plot!(Rz_TR[2,:])
-#plt1=plot(Rr_BR[1,:])
-#plot!(Rr_TR[1,:])
-#display(plot(plt1))
-
-#plt1=plot(Rr_BR[1,:])
-#plot!(Rr_TR[1,:])
-#plt1=plot(Rr_R[1,:])
-#plot!(Rr_R[end,:])
-#plot!(Rr_TR[1,:])
-#plt1=plot(Rr_R[end,:])
-#plot!(Rr_BR[1,:])
-
-#display(plot(plt1))
 
 #--Snapshots
 #println("check snap")
@@ -519,11 +442,7 @@ start=time()
 General variables
 ======================#
 
-#==time samples
-const dt=0.125E-5
-const nt=16001
-const T=(nt-1)*dt
-==#
+#time samples
 dt=1E-4
 nt=751
 #nt=101
