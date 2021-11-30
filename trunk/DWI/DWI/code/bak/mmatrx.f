@@ -1,5 +1,0 @@
-      call dmatrx(d,1,r(1))
-      consts(0)=d(1,2)
-      consts(1)=d(1,1)
-      consts(2)=d(3,2)
-      consts(3)=d(3,1)
