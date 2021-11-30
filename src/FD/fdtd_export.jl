@@ -21,11 +21,8 @@ export  init_fields_Por,
         PML_update_memRS!,
         PML_update_memPQ!,
        #---snapshots (snapshots.jl)----
-        init_snapshots_v,
-        init_snapshots_t,
-        init_snap,
+        init_snapshots,
         get_snapshots!,
-        get_snapshots_t!,
       #---receivers (receivers.jl)---
         init_receiver,
         init_receiver_hydrophone,

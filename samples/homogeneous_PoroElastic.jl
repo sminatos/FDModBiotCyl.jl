@@ -7,19 +7,13 @@
 # If no graphics (X-windows) required, then ENV["GKSwstype"]="nul"
 #--
 
+using FDModBiotCyl
 #
 using CPUTime
 using ProgressMeter
-#using Interpolations
-using MAT
-#using Base64
-#using DSP
 using Plots
-using JLD
 using DelimitedFiles
 using Printf
-#
-using FDModBiotCyl
 using Dierckx
 
 #--Suppressing graphics
@@ -30,10 +24,10 @@ using Dierckx
 
 
 #================
-Drawing model
+Drawing a model
 ================#
 function drawmodel(Field_Var,nz,dz,nr,dr,LPML_r,LPML_z)
-   println("Model drawing...")
+   println("Drawing a model...")
    zvec=[0:dz:(nz-1)*dz]
    rvec=[0:dr:(nr-1)*dr]
    R=(nr-1)*dr
@@ -51,8 +45,44 @@ function drawmodel(Field_Var,nz,dz,nr,dr,LPML_r,LPML_z)
    println("--------")
 end
 
+#================
+Drawing a snapshot
+================#
+function drawsnap(Data1,nz,dz,nr,dr,LPML_r,LPML_z,title_str)
+   println("Drawing a snapshot...")
+   zvec=[0:dz:(nz-1)*dz]
+   rvec=[0:dr:(nr-1)*dr]
+   R=(nr-1)*dr
+   plt1=heatmap(rvec,zvec,Data1,yflip=true,xlabel="R (m)",ylabel="Z (m)",legend=:none)
+   heatmap!(title=title_str)
+   plot!([0;R],ones(2)*(LPML_z-1)*dz,label="",color=:black)
+   plot!([0;R],ones(2)*((nz-LPML_z+1)*dz),label="",color=:black)
+   plot!(ones(2)*((nr-LPML_r+1)*dr),[0;(nz-1)*dz],label="",color=:black)
+   display(plot(plt1))
+end
+# Two snapshots(1,2)
+function drawsnap_1by2(Data1,Data2,nz,dz,nr,dr,LPML_r,LPML_z,title_str1,title_str2)
+   println("Drawing a snapshot...")
+   zvec=[0:dz:(nz-1)*dz]
+   rvec=[0:dr:(nr-1)*dr]
+   R=(nr-1)*dr
+   plt1=heatmap(rvec,zvec,Data1,yflip=true,xlabel="R (m)",ylabel="Z (m)",legend=:none)
+   heatmap!(title=title_str1)
+   plot!([0;R],ones(2)*(LPML_z-1)*dz,label="",color=:black)
+   plot!([0;R],ones(2)*((nz-LPML_z+1)*dz),label="",color=:black)
+   plot!(ones(2)*((nr-LPML_r+1)*dr),[0;(nz-1)*dz],label="",color=:black)
+
+   plt2=heatmap(rvec,zvec,Data2,yflip=true,xlabel="R (m)",ylabel="Z (m)",legend=:none)
+   heatmap!(title=title_str2)
+   plot!([0;R],ones(2)*(LPML_z-1)*dz,label="",color=:black)
+   plot!([0;R],ones(2)*((nz-LPML_z+1)*dz),label="",color=:black)
+   plot!(ones(2)*((nr-LPML_r+1)*dr),[0;(nz-1)*dz],label="",color=:black)
+
+   display(plot(plt1,plt2,layout=(1,2)))
+end
+
 #=========================
-Creating homogeneous model
+Creating a homogeneous model
 =========================#
 function makemodel_homogeneous_PoroElastic()
    #Necessary input matrices to the main loop function are:
@@ -163,19 +193,6 @@ function makemodel_homogeneous_PoroElastic()
 end
 
 
-function drawsnap(Data1,nz,dz,nr,dr,LPML_r,LPML_z)
-   println("Snapshot drawing...")
-   zvec=[0:dz:(nz-1)*dz]
-   rvec=[0:dr:(nr-1)*dr]
-   R=(nr-1)*dr
-   plt1=heatmap(rvec,zvec,Data1,yflip=true,xlabel="R (m)",ylabel="Z (m)",legend=:none)
-   plot!([0;R],ones(2)*(LPML_z-1)*dz,label="",color=:black)
-   plot!([0;R],ones(2)*((nz-LPML_z+1)*dz),label="",color=:black)
-   plot!(ones(2)*((nr-LPML_r+1)*dr),[0;(nz-1)*dz],label="",color=:black)
-   display(plot(plt1))
-
-end
-
 #=========================
 Computing Vp_sat, Vs_sat
 from poroelastic properties
@@ -218,11 +235,11 @@ end
 function main_loop!(nr,nz,dr,dz,Rho,Rhof,M,C,H,G,D1,D2,dt,nt,T,
    vr,vz,trr,tpp,tzz,trz,
    vfr,vfz,pf,
-   src_index,src_dn,
+   src_index,src_dn,src_func,
    Flag_AC,Flag_E,
    nrec,rec_vr,rec_vz,rec_pf,index_allrec_vr,index_allrec_vz,index_allrec_pf,
    LPML_r,LPML_z,PML_Wr,PML_Wz,PML_IWr,PML_Wr2,PML_Wz2,PML_IWr2,
-   snapshots_vr,snapshots_vz,snapshots_trr,nsnap,itvec_snap,nskip)
+   snapshots_vr,snapshots_vz,snapshots_pf,nsnap,itvec_snap,nskip)
 
 #println("start")
 
@@ -243,7 +260,7 @@ memR_vr,memR_vz,memR_trr,memR_tpp,memR_tzz,memR_trz,memR_vfr,memR_vfz,memR_pf=
 init_memory_variables_Por(LPML_r,LPML_z,nr,nz)
 #return
 
-#required for BC
+#initializing following matrices (required for BC)
 vr_old=zeros(nz,nr)
 vz_old=zeros(nz,nr)
 vfr_old=zeros(nz,nr)
@@ -307,8 +324,9 @@ PML_update_memRS!(Rz_T,Srz_T,RzPE_T,
 
 
 #--src injection (velocity)
-#srcamp=src_func[ii]
-#srcapply!(vz,src_index,src_dn,srcamp)
+srcamp=src_func[ii]
+srcamp=srcamp*dt/Rhof[1,1]
+srcapply!(vz,src_index,src_dn,srcamp)
 #srcapply!(vr,src_index,src_dn,srcamp)
 #srcapply!(vfz,src_index,src_dn,srcamp)
 #srcapply!(vfr,src_index,src_dn,srcamp)
@@ -351,13 +369,9 @@ ApplyBCLeft_stress!(vr,vz,trr,tpp,tzz,trz,vfr,vfz,pf,
                     LPML_z)
 
 #--src injection (stress:monopole src)
-#srcamp=-src_func[ii]
-#srcapply!(tzz,src_index,src_dn,srcamp)
-#srcapply!(trr,src_index,src_dn,srcamp)
-#srcapply!(tpp,src_index,src_dn,srcamp)
-srcamp=src_func[ii]
-srcamp=srcamp*dt/Rhof[1,1]
-srcapply!(pf,src_index,src_dn,srcamp)
+#srcamp=src_func[ii]
+#srcamp=srcamp*dt/Rhof[1,1]
+#srcapply!(pf,src_index,src_dn,srcamp)
 
 
 #--PML: updating memory variables for velocity (Pxx and Qxx) using stress at two-time steps
@@ -374,10 +388,9 @@ PML_update_memPQ!(Prz_T,Pzz_T,PzzPE_T,
 
 #-----End of updating field----
 
-#Receiver field (extraction)
+#Receiver field
 getRecData_from_index!(vr,rec_vr,index_allrec_vr,nrec,ii)
 getRecData_from_index!(vz,rec_vz,index_allrec_vz,nrec,ii)
-#getRecData_from_index!(trr,rec_tii,index_allrec_tii,nrec,ii)
 getRecData_from_index!(pf,rec_pf,index_allrec_pf,nrec,ii)
 
 
@@ -387,11 +400,15 @@ check_snap=findall(x -> x==ii,itvec_snap)
 if (length(check_snap)!=0)
    println("ii=",ii)
    cnt_snap=Int(check_snap[1])
-   get_snapshots!(snapshots_vr,snapshots_vz,cnt_snap,vr,vz,nr,nz)
-   get_snapshots_t!(snapshots_trr,cnt_snap,pf,nr,nz)
+   get_snapshots!(snapshots_vz,cnt_snap,vz,nr,nz)
+   get_snapshots!(snapshots_vr,cnt_snap,vr,nr,nz)
+   get_snapshots!(snapshots_pf,cnt_snap,pf,nr,nz)
 
-   drawsnap(snapshots_vz[:,2:end,cnt_snap],nz,dz,nr-1,dr,
-            LPML_r,LPML_z)
+#   drawsnap(snapshots_vz[:,:,cnt_snap],nz,dz,nr,dr,
+#            LPML_r,LPML_z,"Snapshots: Vz")
+
+   drawsnap_1by2(snapshots_vz[:,:,cnt_snap],snapshots_pf[:,:,cnt_snap],nz,dz,nr,dr,
+            LPML_r,LPML_z,"Snapshots: Vz","Snapshots: Pf")
 
 end
 
@@ -409,8 +426,8 @@ General variables
 ======================#
 
 #time samples
-dt=0.5E-4
-nt=2001
+dt=1E-4
+nt=751
 
 T=(nt-1)*dt
 tvec=range(0.0,T,length=nt) # range object (no memory allocation)
@@ -421,7 +438,7 @@ LPML_r=30
 LPML_z=30
 
 #======================
-Creating model
+Creating a model
 ======================#
 nr,nz,dr,dz,Rho,Rhof,M,C,H,G,D1,D2,Flag_AC,Flag_E=makemodel_homogeneous_PoroElastic()
 drawmodel(H,nz,dz,nr,dr,LPML_r,LPML_z)
@@ -434,15 +451,17 @@ check_stability01(dt,dr,Vmax,0)
 check_stability01(dt,dz,Vmax,0)
 
 #======================
-Creating src wavelet
+Creating a src wavelet
 ======================#
 f0=100 #src Freq
 delay=1/f0*1.0
-#src_func=myricker2(tvec,f0,delay,2) #when using 2nd derivative Gaussian (good for DWI)
-#src_func=myricker2(tvec,f0,delay,1) #when using 1st derivative Gaussian (Randall?)
-src_func=myricker2(tvec,f0,delay,3) #when using 3rd derivative Gaussian
+#src_func=myricker2(tvec,f0,delay,2) #when using 2nd derivative Gaussian (Ricker with a negative sign)
+src_func=myricker2(tvec,f0,delay,1) #when using 1st derivative Gaussian
+#src_func=myricker2(tvec,f0,delay,3) #when using 3rd derivative Gaussian
 tmp_maxamp=maximum(map(abs,src_func))
-src_func=src_func/tmp_maxamp
+src_func=src_func/tmp_maxamp*1E+9 #this scaling is just for visualization
+
+
 display(plot(tvec,src_func[:],title="src function"))
 tmpfilename_src=string(@__DIR__,"/src_function.png")
 png(tmpfilename_src)
@@ -459,7 +478,8 @@ srcgeom[1,2]=0*dr #r meter
 wsize=7 #window size (odd number)
 wsigma=1 #std
 src_index,src_dn=get_srcindex_pGauss(srcgeom,dr,dz,wsize,wsigma)
-plot(src_index[1,:],src_index[2,:],src_dn[:],marker=:circle,seriestype=:scatter,zcolor=src_dn[:],camera=(90,90))
+# if you want to see the amplitude distribution,
+# plot(src_index[1,:],src_index[2,:],src_dn[:],marker=:circle,seriestype=:scatter,zcolor=src_dn[:],camera=(90,90))
 
 #==============================
 Initializing field variables
@@ -489,8 +509,10 @@ rec_pf,index_allrec_pf=init_receiver_hydrophone(recgeom,nrec,dr,dz,nr,nz,nt)
 #==============================
 Snapshot settings
 ==============================#
-nskip,snapshots_trr,snapshots_vr,snapshots_vz,
-nsnap,itvec_snap=init_snap(nt,nz,nr,30)
+nskip=30 #change here to adjust time sampling (1~nt)
+snapshots_vz,nsnap,itvec_snap=init_snapshots(nt,nz,nr,nskip)
+snapshots_vr,nsnap,itvec_snap=init_snapshots(nt,nz,nr,nskip)
+snapshots_pf,nsnap,itvec_snap=init_snapshots(nt,nz,nr,nskip)
 #error()
 
 #==============================
@@ -500,87 +522,22 @@ Start main FD Loop
 main_loop!(nr,nz,dr,dz,Rho,Rhof,M,C,H,G,D1,D2,dt,nt,T,
    vr,vz,trr,tpp,tzz,trz,
    vfr,vfz,pf,
-   src_index,src_dn,
+   src_index,src_dn,src_func,
    Flag_AC,Flag_E,
    nrec,rec_vr,rec_vz,rec_pf,index_allrec_vr,index_allrec_vz,index_allrec_pf,
    LPML_r,LPML_z,PML_Wr,PML_Wz,PML_IWr,PML_Wr2,PML_Wz2,PML_IWr2,
-   snapshots_vr,snapshots_vz,snapshots_trr,nsnap,itvec_snap,nskip)
+   snapshots_vr,snapshots_vz,snapshots_pf,nsnap,itvec_snap,nskip)
 
 
 CPUtoc()
 println("elapsed real time: ", round(time() - start;digits=3)," seconds")
 
-error("Stopped w/o problem.")
+println("FD finished without a problem.")
 
-
+println("Plotting receiver responses...")
 offset=recgeom[:,1]-srcgeom[1]*ones(size(recgeom[:,1]))
-heatmap(offset[:],tvec[:],rec_vz,xlims=(-50,50),ylims=(0,0.1),clims=(-1E-15,1E-15))
+plt1=heatmap(offset[:],tvec[:],rec_vz,xlabel="Offset (m)",ylabel="time (s)",title="Vz")
 heatmap!(flip=true)
-
-heatmap(offset[:],tvec[:],rec_vr,xlims=(-50,50),ylims=(0,0.1),clims=(-1E-15,1E-15))
+plt2=heatmap(offset[:],tvec[:],rec_pf,xlabel="Offset (m)",ylabel="time (s)",title="Pf")
 heatmap!(flip=true)
-
-#Check
-rec_vz_Aki=Green_Aki(2525.7,1275.8,2500.1,tvec,src_func,srcgeom,recgeom)
-rec_vz_Aki=rec_vz_Aki/maximum(rec_vz_Aki)
-rec_vz_norm=rec_vz/maximum(rec_vz)
-plt1=heatmap(recgeom[:,1],tvec[:],rec_vz_norm,xlabel="Z (m)",ylabel="time (s)",title="FD")
-plt2=heatmap(recgeom[:,1],tvec[:],rec_vz_Aki,xlabel="Z (m)",ylabel="time (s)",title="Theory")
-plt3=plot(tvec[:],rec_vz_norm[:,151],xlabel="time (s)",label="FD")
-plot!(tvec[:],rec_vz_Aki[:,151],xlabel="time (s)",label="Theory")
-display(plot(plt1,plt2,plt3,layout=(3,1)))
-
-tol=0.05
-sqrt(sum((rec_vz_norm[:,151] - rec_vz_Aki[:,151]) .^ 2)) / sqrt(sum(rec_vz_norm[:,151] .^ 2)) < tol
-
-error()
-
-   println("Model drawing...")
-   zvec=[0:dz:(nz-1)*dz]
-   rvec=[0:dr:(nr-1)*dr]
-   R=(nr-1)*dr
-   plt1=heatmap(rvec,zvec,vz,yflip=true,xlabel="R (m)",ylabel="Z (m)",ratio=1)
-   plot!([(src_index[2]-1)*dr],[(src_index[1]-1)*dz],label="",markershape=:circle,markersize=5,markerstrokewidth=0,seriescolor=:red)
-   plot!((index_allrec_tii[:,2]-ones(nrec))*dr,(index_allrec_tii[:,1]-ones(nrec))*dz,label="",markershape=:cross,markersize=5,markerstrokewidth=0,seriescolor=:red)
-   plot!([0;R],ones(2)*(LPML_z-1)*dz,label="",color=:black)
-   plot!([0;R],ones(2)*((nz-LPML_z+1)*dz),label="",color=:black)
-   plot!(ones(2)*((nr-LPML_r+1)*dr),[0;(nz-1)*dz],label="",color=:black)
-   display(plot(plt1))
-
-
-
-tmp_filename="out.jld"
-tmp_filename_full=string(@__DIR__,"/",tmp_filename)
-save(tmp_filename_full,
-"tvec",tvec,"nr",nr,"nz",nz,"dr",dr,"dz",dz,"m",m,"dt",dt,"nt",nt,"T",T,"rec_tii",rec_tii,"src_func",src_func,
-"index_allrec_tii",index_allrec_tii,"src_index",src_index,"snapshots_trr",snapshots_trr,
-"itvec_snap",itvec_snap)
-
-
-#tmp_filename="out_reference_back2.mat"
-tmp_filename="out_2L.mat"
-
-iskip_rec=10
-tvec_rec=tvec[1:iskip_rec:end]
-
-tmp_filename_full=string(@__DIR__,"/",tmp_filename)
-matwrite(tmp_filename_full, Dict(
-"tvec"=>tvec,"nr"=>nr,"nz"=>nz,"dr"=>dr,"dz"=>dz,
-"dt"=>dt,"nt"=>nt,"T"=>T,
-"tvec_rec"=>tvec_rec,
-"rec_tii"=>rec_tii[1:iskip_rec:end,:],
-#"rec_vz"=>rec_vz[1:iskip_rec:end,:],
-#"rec_vr"=>rec_vr,
-#"rec_tii_PE"=>rec_tii_PE[1:iskip_rec:end,:],
-#"rec_pf_PE"=>rec_pf_PE[1:iskip_rec:end,:],
-"src_func"=>src_func,
-"index_allrec_tii"=>index_allrec_tii,
-#"index_allrec_vz"=>index_allrec_vz,
-#"index_allrec_vr"=>index_allrec_vr,
-#"index_allrec_pf_PE"=>index_allrec_pf_PE,
-#"src_index"=>src_index,
-#"snapshots_trr"=>snapshots_trr,
-#"snapshots_pf"=>snapshots_trr,
-#"snapshots_vr"=>snapshots_vr,
-"snapshots_vz"=>snapshots_vz,
-"itvec_snap"=>itvec_snap); compress = true)
+display(plot(plt1,plt2,layout=(1,2)))

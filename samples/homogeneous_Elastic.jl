@@ -7,19 +7,13 @@
 # If no graphics (X-windows) required, then ENV["GKSwstype"]="nul"
 #--
 
+using FDModBiotCyl
 #
 using CPUTime
 using ProgressMeter
-#using Interpolations
-using MAT
-#using Base64
-#using DSP
 using Plots
-using JLD
 using DelimitedFiles
 using Printf
-#
-using FDModBiotCyl
 using Dierckx
 
 #--Suppressing graphics
@@ -30,10 +24,10 @@ using Dierckx
 
 
 #================
-Drawing model
+Drawing a model
 ================#
 function drawmodel(Field_Var,nz,dz,nr,dr,LPML_r,LPML_z)
-   println("Model drawing...")
+   println("Drawing a model...")
    zvec=[0:dz:(nz-1)*dz]
    rvec=[0:dr:(nr-1)*dr]
    R=(nr-1)*dr
@@ -51,8 +45,25 @@ function drawmodel(Field_Var,nz,dz,nr,dr,LPML_r,LPML_z)
    println("--------")
 end
 
+#================
+Drawing a snapshot
+================#
+function drawsnap(Data1,nz,dz,nr,dr,LPML_r,LPML_z,title_str)
+   println("Drawing a snapshot...")
+   zvec=[0:dz:(nz-1)*dz]
+   rvec=[0:dr:(nr-1)*dr]
+   R=(nr-1)*dr
+   plt1=heatmap(rvec,zvec,Data1,yflip=true,xlabel="R (m)",ylabel="Z (m)",legend=:none)
+   heatmap!(title=title_str)
+   plot!([0;R],ones(2)*(LPML_z-1)*dz,label="",color=:black)
+   plot!([0;R],ones(2)*((nz-LPML_z+1)*dz),label="",color=:black)
+   plot!(ones(2)*((nr-LPML_r+1)*dr),[0;(nz-1)*dz],label="",color=:black)
+   display(plot(plt1))
+
+end
+
 #=========================
-Creating homogeneous model
+Creating a homogeneous model
 =========================#
 function makemodel_homogeneous_Elastic()
    #Necessary input matrices to the main loop function are:
@@ -157,18 +168,6 @@ function makemodel_homogeneous_Elastic()
 end
 
 
-function drawsnap(Data1,nz,dz,nr,dr,LPML_r,LPML_z)
-   println("Snapshot drawing...")
-   zvec=[0:dz:(nz-1)*dz]
-   rvec=[0:dr:(nr-1)*dr]
-   R=(nr-1)*dr
-   plt1=heatmap(rvec,zvec,Data1,yflip=true,xlabel="R (m)",ylabel="Z (m)",legend=:none)
-   plot!([0;R],ones(2)*(LPML_z-1)*dz,label="",color=:black)
-   plot!([0;R],ones(2)*((nz-LPML_z+1)*dz),label="",color=:black)
-   plot!(ones(2)*((nr-LPML_r+1)*dr),[0;(nz-1)*dz],label="",color=:black)
-   display(plot(plt1))
-
-end
 
 
 
@@ -276,12 +275,6 @@ PML_save_vel!(memT_vr,memT_vz,memT_vfr,memT_vfz,
               vr,vz,vfr,vfz,nr,nz,LPML_z,LPML_r)
 #println("update vel")
 
-#keep current values before updating velocity for Acoustic-Poroelastic BC later
-#mycopy_mat(vr,vr_old,nz,nr)
-#mycopy_mat(vz,vz_old,nz,nr)
-#mycopy_mat(vfr,vfr_old,nz,nr)
-#mycopy_mat(vfz,vfz_old,nz,nr)
-
 # Main velocity update!
 update_velocity_1st_Por!(vr,vz,trr,tpp,tzz,trz,vfr,vfz,pf,Rho,Rhof,D1,D2,Flag_vf_zero,nr,nz,dr,dz,dt,LPML_z,LPML_r)
 
@@ -314,14 +307,6 @@ ApplyBCLeft_vel!(vr,vz,trr,tpp,tzz,trz,vfr,vfz,pf,
                           Prz_T,Pzz_T,PzzPE_T,
                           Prz_B,Pzz_B,PzzPE_B,
                           LPML_z)
-
-#---Fluid-PE BC @borehole wall (test): replacing velocity values
-#update_vr_vfr_1st_vertical(vr,trr,tpp,tzz,trz,vfr,pf,
-#    vr_old,vfr_old,
-#    Rho,Rhof,D1,D2,nr,nz,dr,dz,dt,LPML_z,
-#    Prz_T,Prz_B,
-#    ir_wall,Flag_AC,Flag_E)
-
 
 #PML: update memory variables for stress (Rx and Sxx) using velocity at two time steps
 PML_update_memRS!(Rz_T,Srz_T,RzPE_T,
@@ -386,10 +371,6 @@ ApplyBCLeft_stress!(vr,vz,trr,tpp,tzz,trz,vfr,vfz,pf,
 #srcapply!(tpp,src_index,src_dn,srcamp)
 
 
-#---Additional BC when Flag_Acoustic/Flag_Elastic
-#ApplyBC_stress_AcousticMedia!(trr,tpp,tzz,trz,pf,Flag_AC,nr,nz) #pf=-1/3tii
-#ApplyBC_stress_ElasticMedia_Ou!(pf,Flag_E,nr,nz) #when Flag_E==1, then pf=0
-
 
 #--PML: update memory variables for velocity (Pxx and Qxx) using stress at two time steps
 PML_update_memPQ!(Prz_T,Pzz_T,PzzPE_T,
@@ -406,26 +387,24 @@ PML_update_memPQ!(Prz_T,Pzz_T,PzzPE_T,
 #-----End of updating field----
 
 #println("receiver")
-#Receiver field (extraction)
+#Receiver field
 getRecData_from_index!(vr,rec_vr,index_allrec_vr,nrec,ii)
 getRecData_from_index!(vz,rec_vz,index_allrec_vz,nrec,ii)
-#getRecData_from_index!(trr,rec_tii,index_allrec_tii,nrec,ii)
 
 
 
 #--Snapshots
-#println("check snap")
 check_snap=findall(x -> x==ii,itvec_snap)
 if (length(check_snap)!=0)
    println("ii=",ii)
    cnt_snap=Int(check_snap[1])
-   get_snapshots!(snapshots_vr,snapshots_vz,cnt_snap,vfr,vz,nr,nz)
-   get_snapshots_t!(snapshots_trr,cnt_snap,pf,nr,nz)
+   get_snapshots!(snapshots_vz,cnt_snap,vz,nr,nz)
+   get_snapshots!(snapshots_vr,cnt_snap,vr,nr,nz)
+   get_snapshots!(snapshots_trr,cnt_snap,trr,nr,nz)
 
-#   drawsnap(snapshots_vz[:,:,cnt_snap],nz,dz,nr,dr,
-#            LPML_r,LPML_z)
-   drawsnap(snapshots_vz[:,2:end,cnt_snap],nz,dz,nr-1,dr,
-            LPML_r,LPML_z)
+
+   drawsnap(snapshots_vz[:,:,cnt_snap],nz,dz,nr,dr,
+            LPML_r,LPML_z,"Snapshots: Vz")
 
 end
 
@@ -455,7 +434,7 @@ LPML_r=20
 LPML_z=20
 
 #======================
-Creating model
+Creating a model
 ======================#
 nr,nz,dr,dz,Rho,Rhof,M,C,H,G,D1,D2,Flag_AC,Flag_E=makemodel_homogeneous_Elastic()
 drawmodel(H,nz,dz,nr,dr,LPML_r,LPML_z)
@@ -469,15 +448,16 @@ check_stability01(dt,dr,Vmax,0)
 check_stability01(dt,dz,Vmax,0)
 #error()
 #======================
-Creating src wavelet
+Creating a src wavelet
 ======================#
 f0=100 #src Freq
 delay=1/f0*1.0
-#src_func=myricker2(tvec,f0,delay,2) #when using 2nd derivative Gaussian (good for DWI)
-src_func=myricker2(tvec,f0,delay,1) #when using 1st derivative Gaussian (Randall?)
+#src_func=myricker2(tvec,f0,delay,2) #when using 2nd derivative Gaussian (Ricker with a negative sign)
+src_func=myricker2(tvec,f0,delay,1) #when using 1st derivative Gaussian
 #src_func=myricker2(tvec,f0,delay,3) #when using 3rd derivative Gaussian
 tmp_maxamp=maximum(map(abs,src_func))
-src_func=src_func/tmp_maxamp
+src_func=src_func/tmp_maxamp*1E+9 #this scaling is just for visualization
+
 display(plot(tvec,src_func[:],title="src function"))
 tmpfilename_src=string(@__DIR__,"/src_function.png")
 png(tmpfilename_src)
@@ -494,9 +474,8 @@ srcgeom[1,2]=0*dr #r meter.
 wsize=7 #window size (odd number)
 wsigma=1 #std
 src_index,src_dn=get_srcindex_pGauss(srcgeom,dr,dz,wsize,wsigma)
-plot(src_index[1,:],src_index[2,:],src_dn[:],marker=:circle,seriestype=:scatter,zcolor=src_dn[:],camera=(90,90))
-
-#src_index,src_dn=get_srcindex_monopole(srcgeom,dr,dz)
+# if you want to see the amplitude distribution,
+# plot(src_index[1,:],src_index[2,:],src_dn[:],marker=:circle,seriestype=:scatter,zcolor=src_dn[:],camera=(90,90))
 
 #error()
 #==============================
@@ -526,8 +505,11 @@ rec_vr,rec_vz,index_allrec_vr,index_allrec_vz=init_receiver_geophone(recgeom,nre
 #==============================
 Snapshot settings
 ==============================#
-nskip,snapshots_trr,snapshots_vr,snapshots_vz,
-nsnap,itvec_snap=init_snap(nt,nz,nr,30)
+nskip=30 #change here to adjust time sampling (1~nt)
+snapshots_vz,nsnap,itvec_snap=init_snapshots(nt,nz,nr,nskip)
+snapshots_vr,nsnap,itvec_snap=init_snapshots(nt,nz,nr,nskip)
+snapshots_trr,nsnap,itvec_snap=init_snapshots(nt,nz,nr,nskip)
+
 #error()
 
 #==============================
@@ -547,71 +529,17 @@ main_loop!(nr,nz,dr,dz,Rho,Rhof,M,C,H,G,D1,D2,dt,nt,T,
 CPUtoc()
 println("elapsed real time: ", round(time() - start;digits=3)," seconds")
 
-error("Stopped w/o problem.")
+println("FD finished without a problem.")
 
 
-
-#Check
+#Following is to check the FD results with the analytical solution
+println("Calculating analytical solution and plotting final results...")
+#Analytical Green's function
 rec_vz_Aki=Green_Aki(2500,2000,2000,tvec,src_func,srcgeom,recgeom) #vp,vs,rho
-#rec_vz_Aki=rec_vz_Aki/maximum(rec_vz_Aki)
-#rec_vz_norm=rec_vz/maximum(rec_vz)
+#Plotting results
 plt1=heatmap(recgeom[:,1],tvec[:],rec_vz,xlabel="Z (m)",ylabel="time (s)",title="FD")
 plt2=heatmap(recgeom[:,1],tvec[:],rec_vz_Aki,xlabel="Z (m)",ylabel="time (s)",title="Theory")
 plt3=plot(tvec[:],rec_vz[:,151],xlabel="time (s)",label="FD")
 plot!(tvec[:],rec_vz_Aki[:,151],xlabel="time (s)",label="Theory")
-display(plot(plt1,plt2,plt3,layout=(3,1)))
-
-tol=0.05
-sqrt(sum((rec_vz_norm[:,151] - rec_vz_Aki[:,151]) .^ 2)) / sqrt(sum(rec_vz_norm[:,151] .^ 2)) < tol
-
-error()
-
-   println("Model drawing...")
-   zvec=[0:dz:(nz-1)*dz]
-   rvec=[0:dr:(nr-1)*dr]
-   R=(nr-1)*dr
-   plt1=heatmap(rvec,zvec,vz,yflip=true,xlabel="R (m)",ylabel="Z (m)",ratio=1)
-   plot!([(src_index[2]-1)*dr],[(src_index[1]-1)*dz],label="",markershape=:circle,markersize=5,markerstrokewidth=0,seriescolor=:red)
-   plot!((index_allrec_tii[:,2]-ones(nrec))*dr,(index_allrec_tii[:,1]-ones(nrec))*dz,label="",markershape=:cross,markersize=5,markerstrokewidth=0,seriescolor=:red)
-   plot!([0;R],ones(2)*(LPML_z-1)*dz,label="",color=:black)
-   plot!([0;R],ones(2)*((nz-LPML_z+1)*dz),label="",color=:black)
-   plot!(ones(2)*((nr-LPML_r+1)*dr),[0;(nz-1)*dz],label="",color=:black)
-   display(plot(plt1))
-
-
-
-tmp_filename="out.jld"
-tmp_filename_full=string(@__DIR__,"/",tmp_filename)
-save(tmp_filename_full,
-"tvec",tvec,"nr",nr,"nz",nz,"dr",dr,"dz",dz,"m",m,"dt",dt,"nt",nt,"T",T,"rec_tii",rec_tii,"src_func",src_func,
-"index_allrec_tii",index_allrec_tii,"src_index",src_index,"snapshots_trr",snapshots_trr,
-"itvec_snap",itvec_snap)
-
-
-#tmp_filename="out_reference_back2.mat"
-tmp_filename="out_2L.mat"
-
-iskip_rec=10
-tvec_rec=tvec[1:iskip_rec:end]
-
-tmp_filename_full=string(@__DIR__,"/",tmp_filename)
-matwrite(tmp_filename_full, Dict(
-"tvec"=>tvec,"nr"=>nr,"nz"=>nz,"dr"=>dr,"dz"=>dz,
-"dt"=>dt,"nt"=>nt,"T"=>T,
-"tvec_rec"=>tvec_rec,
-"rec_tii"=>rec_tii[1:iskip_rec:end,:],
-#"rec_vz"=>rec_vz[1:iskip_rec:end,:],
-#"rec_vr"=>rec_vr,
-#"rec_tii_PE"=>rec_tii_PE[1:iskip_rec:end,:],
-#"rec_pf_PE"=>rec_pf_PE[1:iskip_rec:end,:],
-"src_func"=>src_func,
-"index_allrec_tii"=>index_allrec_tii,
-#"index_allrec_vz"=>index_allrec_vz,
-#"index_allrec_vr"=>index_allrec_vr,
-#"index_allrec_pf_PE"=>index_allrec_pf_PE,
-#"src_index"=>src_index,
-#"snapshots_trr"=>snapshots_trr,
-#"snapshots_pf"=>snapshots_trr,
-#"snapshots_vr"=>snapshots_vr,
-"snapshots_vz"=>snapshots_vz,
-"itvec_snap"=>itvec_snap); compress = true)
+display(plot(plt1,plt2,layout=(1,2)))
+display(plot(plt3))
