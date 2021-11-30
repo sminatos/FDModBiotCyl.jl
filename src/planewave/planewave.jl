@@ -1,5 +1,5 @@
-# Setting up initial conditions for normal incidence plane wave
-# Analytical plane wave solutions are based on Peng (1996)
+# Setting up initial conditions for a normally incident plane P wave
+# Analytical plane wave solutions are based on Peng (1994), PhD Thesis, MIT.
 # dependent on: rfft/irfft (FFTW)
 #             : Spline1D (Dierckx)
 #             : besselj, hankelh1 (SpecialFunctions)
@@ -56,13 +56,8 @@ end #function
 
 function Peng_solution(nr,nz,dr,dz,ir_wall,tvec,src_func,srcdepth,f0,ntaper,noffset,
     Vp,Vs,Rho)
-   #important: Schoenberg/Peng -> FT Aki
-   #         : rfft <-> irfft -> FT Kees
-   #01: not approximate, but exact solution
-   #02: option to create initial stress one step ealier for pre-update
-   #03: Vp,Vs,Rho as input
-
-   #println("Peng_solution02")
+   #important: Schoenberg/Peng -> FT Aki-Rechards
+   #         : rfft <-> irfft -> FT MATLAB
 
    dt=tvec[2]-tvec[1]
    T=tvec[end]
@@ -75,8 +70,9 @@ function Peng_solution(nr,nz,dr,dz,ir_wall,tvec,src_func,srcdepth,f0,ntaper,noff
    ns_half=length(fsrc)
    fvec=fvec[1:ns_half]
 #   plot(fvec,map(abs,fsrc),xlims=(0,1000))
-   #---calculating Schoenberg's exact solution for vz, and vr, at fluid and solid phase
-   #--normal incidence Pwave only (positive z propagation)
+
+   #calculating Schoenberg's exact solution for vz, and vr, at fluid and solid phase
+   #normal incident P wave only (positive z propagation)
    src_iz=Int(round(srcdepth-dz/2)/dz+1) #src defined at vz cell
    rb=(ir_wall-1)*dr+dr/2.0 # make sure Vp[1:ir_wall]=1500
 
@@ -92,7 +88,7 @@ function Peng_solution(nr,nz,dr,dz,ir_wall,tvec,src_func,srcdepth,f0,ntaper,noff
 
    angle_delta=1E-4 # =0 normal incidence, but give a small number as it diverges due to Hankel function.
 
-   #---checking ir_wall value
+   #checking ir_wall value
    flag_error_irwall=0
    if (Vs_solid < 1.0)
       flag_error_irwall=1
@@ -105,8 +101,8 @@ function Peng_solution(nr,nz,dr,dz,ir_wall,tvec,src_func,srcdepth,f0,ntaper,noff
       error("Check ir_wall in Peng_solution! Is ir_wall at the boundary??")
    end
 
-   #---output waveforms
-   #--outputs are vr[ns,nr] and vz[ns,nr]
+   #output waveforms
+   #outputs are vr[ns,nr] and vz[ns,nr]
    vr_Peng=zeros(ns,nr)
    vz_Peng=zeros(ns,nr)
 
@@ -127,34 +123,33 @@ function Peng_solution(nr,nz,dr,dz,ir_wall,tvec,src_func,srcdepth,f0,ntaper,noff
    if_max=minimum(findall(x -> x > max_freq_src,fvec)) #to be used to filter high-freq noise
 
 
-   #---creating -dz/2/Vp_solid time delayed src function for later use
-   #  time rewinds because vr and tii are dz/2 upwards vz, and plane wave propagates downwards
-   # plus consider stress is dt/2 time delayed in main loop
-   # so, this function is used only creating stress BC
+   # Creating -dz/2/Vp_solid time delayed src function for later use.
+   # Time rewinds because vr and tii are dz/2 upwards vz, and plane wave propagates downwards.
+   # In addition, we consider stress as dt/2 time delayed in the main loop
+   # Therefore, this function is used only to create stress BC
    #Option:
-   #Default stress is dt/2 from velocity.
-   #When enabling pre-update before main loop, stress is -dt/2 from velocity
+   #Default stress is offset by dt/2 from velocity.
+   #When enabling pre-update before the main loop, stress is offset by -dt/2 from velocity
 
    println("===============================")
-   println("Output initial stress is +dt/2 from Velocity (default)!")
+   println("Output initial stress is +dt/2 from Velocity (default).")
    src_func_forStress=(src_func[1:end]+[src_func[2:end]; 0])/2.0
- #  println("Output initial stress is -dt/2 from Velocity!")
- #  println("Make sure to enable pre-update!")
+ #  println("Output initial stress is -dt/2 from Velocity (make sure to enable pre-update!).")
  #  src_func_forStress=(src_func[1:end]+[0; src_func[1:end-1]])/2.0
    println("===============================")
 
 
    fsrc_forStress=rfft(src_func_forStress[:])
-   tmp_phase_delay=im*2pi*fvec*(dz/2)/Vp_solid #negative phase -> time delays -> Kees FT
-   fsrc_forStress_delayed=fsrc_forStress.*map(exp,tmp_phase_delay) #I said "delay" but it actually rewinds as exlained above
+   tmp_phase_delay=im*2pi*fvec*(dz/2)/Vp_solid #negative phase -> time delays -> MATLAB FT
+   fsrc_forStress_delayed=fsrc_forStress.*map(exp,tmp_phase_delay) #It says "delay" but it actually rewinds as exlained above
    fsrc_forStress_delayed[if_max+1:end]=zeros(ns_half-if_max,1)
    src_forStress_delayed=irfft(fsrc_forStress_delayed,ns)
 
 
-   #--repeat every r_now
+   #repeat every r_now
    for ir=1:nr-noffset
 
-      #---Start frequency response
+      #Start frequency response
       fvz=complex(zeros(1,ns_half))
       fvr=complex(zeros(1,ns_half))
 
@@ -174,25 +169,25 @@ function Peng_solution(nr,nz,dr,dz,ir_wall,tvec,src_func,srcdepth,f0,ntaper,noff
          #fluid:vz
          r_now=(ir-1)*dr
          fvz[iw]=(-im*w)*uz_f(r_now,A0,w,angle_delta,rb,Vp_fluid,Vp_solid,Vs_solid,Rho_fluid,Rho_solid)
-         fvz[iw]=conj(fvz[iw]) #FT Aki->FT Kees
-         fvz[iw]=fvz[iw]*fsrc[iw]/w^2 #/w^2 scaling is due to V(w)=w^2 in Peng.
+         fvz[iw]=conj(fvz[iw]) #FT Aki-Rechards -> FT MATLAB
+         fvz[iw]=fvz[iw]*fsrc[iw]/w^2 #/w^2 scaling is due to V(w)=w^2 in Peng (1994).
 
          #fluid:vr (with delay=-(dz/2)/Vp_solid), time reversed because vr is dz/2 upwards vz, and plane wave downwards
          r_now=(ir-1)*dr+dr/2.0
          fvr[iw]=(-im*w)*ur_f(r_now,A0,w,angle_delta,rb,Vp_fluid,Vp_solid,Vs_solid,Rho_fluid,Rho_solid)
-         fvr[iw]=conj(fvr[iw]) #FT Aki->FT Kees
-         fvr[iw]=fvr[iw]*fsrc[iw]/w^2 #/w^2 scaling is due to V(w)=w^2 in Peng.
+         fvr[iw]=conj(fvr[iw]) #FT Aki-Rechards -> FT MATLAB
+         fvr[iw]=fvr[iw]*fsrc[iw]/w^2 #/w^2 scaling is due to V(w)=w^2 in Peng (1994).
             #additinoal delay (positive z propagation)
-            tmp_phase_delay=im*2pi*fvec[iw]*(dz/2)/Vp_solid #negative phase -> time advance -> Kees FT
+            tmp_phase_delay=im*2pi*fvec[iw]*(dz/2)/Vp_solid #negative phase -> time advance -> MATLAB FT
          fvr[iw]=fvr[iw]*exp(tmp_phase_delay)
 
          #fluid: pressure (with delay=-(dz/2)/Vp_solid)
          r_now=(ir-1)*dr
          ftrr[iw]=trr_f(r_now,A0,w,angle_delta,rb,Vp_fluid,Vp_solid,Vs_solid,Rho_fluid,Rho_solid)
-         ftrr[iw]=conj(ftrr[iw]) #FT Aki->FT Kees
-         ftrr[iw]=ftrr[iw]*fsrc_forStress_delayed[iw]/w^2 #/w^2 scaling is due to V(w)=w^2 in Peng.
+         ftrr[iw]=conj(ftrr[iw]) #FT Aki-Rechards -> FT MATLAB
+         ftrr[iw]=ftrr[iw]*fsrc_forStress_delayed[iw]/w^2 #/w^2 scaling is due to V(w)=w^2 in Peng (1994).
             #additinoal delay (positive z propagation)
-            tmp_phase_delay=im*2pi*fvec[iw]*(dz/2)/Vp_solid #negative phase -> time advance -> Kees FT
+            tmp_phase_delay=im*2pi*fvec[iw]*(dz/2)/Vp_solid #negative phase -> time advance -> MATLAB FT
          ftrr[iw]=ftrr[iw]*exp(tmp_phase_delay)
 
          ftpp[iw]=ftrr[iw]
@@ -206,8 +201,8 @@ function Peng_solution(nr,nz,dr,dz,ir_wall,tvec,src_func,srcdepth,f0,ntaper,noff
              uz_xi(r_now,C0,w,angle_delta,rb,Vp_fluid,Vp_solid,Vs_solid,Rho_fluid,Rho_solid)+
              uz_P(r_now,w,angle_delta,rb,Vp_fluid,Vp_solid,Vs_solid,Rho_fluid,Rho_solid)
              )
-         fvz[iw]=conj(fvz[iw]) #FT Aki->FT Kees
-         fvz[iw]=fvz[iw]*fsrc[iw]/w^2 #/w^2 scaling is due to V(w)=w^2 in Peng.
+         fvz[iw]=conj(fvz[iw]) #FT Aki-Rechards -> FT MATLAB
+         fvz[iw]=fvz[iw]*fsrc[iw]/w^2 #/w^2 scaling is due to V(w)=w^2 in Peng (1994).
 
          #solid:vr (with delay=-(dz/2)/Vp_solid)
          r_now=(ir-1)*dr+dr/2.0
@@ -216,10 +211,10 @@ function Peng_solution(nr,nz,dr,dz,ir_wall,tvec,src_func,srcdepth,f0,ntaper,noff
              ur_xi(r_now,C0,w,angle_delta,rb,Vp_fluid,Vp_solid,Vs_solid,Rho_fluid,Rho_solid)+
              ur_P(r_now,w,angle_delta,rb,Vp_fluid,Vp_solid,Vs_solid,Rho_fluid,Rho_solid)
              )
-         fvr[iw]=conj(fvr[iw]) #FT Aki->FT Kees
-         fvr[iw]=fvr[iw]*fsrc[iw]/w^2 #/w^2 scaling is due to V(w)=w^2 in Peng.
+         fvr[iw]=conj(fvr[iw]) #FT Aki-Rechards -> FT MATLAB
+         fvr[iw]=fvr[iw]*fsrc[iw]/w^2 #/w^2 scaling is due to V(w)=w^2 in Peng (1994).
             #additinoal delay (positive z propagation)
-            tmp_phase_delay=im*2pi*fvec[iw]*(dz/2)/Vp_solid #negative phase -> time advance -> Kees FT
+            tmp_phase_delay=im*2pi*fvec[iw]*(dz/2)/Vp_solid #negative phase -> time advance -> MATLAB FT
          fvr[iw]=fvr[iw]*exp(tmp_phase_delay)
 
 
@@ -240,14 +235,14 @@ function Peng_solution(nr,nz,dr,dz,ir_wall,tvec,src_func,srcdepth,f0,ntaper,noff
              tzz_xi(r_now,C0,w,angle_delta,rb,Vp_fluid,Vp_solid,Vs_solid,Rho_fluid,Rho_solid)+
              tzz_P(r_now,w,angle_delta,rb,Vp_fluid,Vp_solid,Vs_solid,Rho_fluid,Rho_solid)
              )
-          ftrr[iw]=conj(ftrr[iw]) #FT Aki->FT Kees
-          ftpp[iw]=conj(ftpp[iw]) #FT Aki->FT Kees
-          ftzz[iw]=conj(ftzz[iw]) #FT Aki->FT Kees
-          ftrr[iw]=ftrr[iw]*fsrc_forStress_delayed[iw]/w^2 #/w^2 scaling is due to V(w)=w^2 in Peng.
-          ftpp[iw]=ftpp[iw]*fsrc_forStress_delayed[iw]/w^2 #/w^2 scaling is due to V(w)=w^2 in Peng.
-          ftzz[iw]=ftzz[iw]*fsrc_forStress_delayed[iw]/w^2 #/w^2 scaling is due to V(w)=w^2 in Peng.
+          ftrr[iw]=conj(ftrr[iw]) #FT Aki-Rechards -> FT MATLAB
+          ftpp[iw]=conj(ftpp[iw]) #FT Aki-Rechards -> FT MATLAB
+          ftzz[iw]=conj(ftzz[iw]) #FT Aki-Rechards -> FT MATLAB
+          ftrr[iw]=ftrr[iw]*fsrc_forStress_delayed[iw]/w^2 #/w^2 scaling is due to V(w)=w^2 in Peng (1994).
+          ftpp[iw]=ftpp[iw]*fsrc_forStress_delayed[iw]/w^2 #/w^2 scaling is due to V(w)=w^2 in Peng (1994).
+          ftzz[iw]=ftzz[iw]*fsrc_forStress_delayed[iw]/w^2 #/w^2 scaling is due to V(w)=w^2 in Peng (1994).
             #additinoal delay (positive z propagation)
-            tmp_phase_delay=im*2pi*fvec[iw]*(dz/2)/Vp_solid #negative phase -> time advance -> Kees FT
+            tmp_phase_delay=im*2pi*fvec[iw]*(dz/2)/Vp_solid #negative phase -> time advance -> MATLAB FT
           ftrr[iw]=ftrr[iw]*exp(tmp_phase_delay)
           ftpp[iw]=ftpp[iw]*exp(tmp_phase_delay)
           ftzz[iw]=ftzz[iw]*exp(tmp_phase_delay)
@@ -259,8 +254,8 @@ function Peng_solution(nr,nz,dr,dz,ir_wall,tvec,src_func,srcdepth,f0,ntaper,noff
              trz_xi(r_now,C0,w,angle_delta,rb,Vp_fluid,Vp_solid,Vs_solid,Rho_fluid,Rho_solid)+
              trz_P(r_now,w,angle_delta,rb,Vp_fluid,Vp_solid,Vs_solid,Rho_fluid,Rho_solid)
              )
-          ftrz[iw]=conj(ftrz[iw]) #FT Aki->FT Kees
-          ftrz[iw]=ftrz[iw]*fsrc_forStress_delayed[iw]/w^2 #/w^2 scaling is due to V(w)=w^2 in Peng.
+          ftrz[iw]=conj(ftrz[iw]) #FT Aki-Rechards -> FT MATLAB
+          ftrz[iw]=ftrz[iw]*fsrc_forStress_delayed[iw]/w^2 #/w^2 scaling is due to V(w)=w^2 in Peng (1994).
        end #if ir
     end #iw
     vz_tmp=irfft(fvz[:],ns)
@@ -304,8 +299,8 @@ end
 
 
 #--------------------------------------------------------------
-# Converting time-domain solution into
-# Space-domain to construct initial conditions
+# Converting time-domain solution to
+# space domain to construct initial conditions
 #--------------------------------------------------------------
 #Schoenberg's (or Peng's) solution as an initial condition
 #Assuming open hole
@@ -316,19 +311,17 @@ function Schoenberg_solution_initialBC(nr,nz,dr,dz,ir_wall,Vp,
          trr_Schoenberg,tpp_Schoenberg,tzz_Schoenberg,trp_Schoenberg,trz_Schoenberg,tpz_Schoenberg,
          ntaper,noffset)
 
-    #03: better interpolation scheme. Requires tvec for vel and stress
-
    dt=tvec_vel[2]-tvec_vel[1]
    T=tvec_vel[end]
    ns=length(tvec_vel)
 
-   #---calculating Schoenberg's approximate solution for vz, and vr, at fluid and solid phase
-   #--normal incidence Pwave only (positive z propagation)
+   #calculating Schoenberg's approximate solution for vz, and vr, at fluid and solid phase
+   #normal incidence Pwave only (positive z propagation)
    src_iz=Int(round(srcdepth-dz/2)/dz+1) #src defined at vz cell
    rb=(ir_wall-1)*dr+dr/2.0 # make sure Vp[1:ir_wall]=1500
    Vp_solid=Vp[src_iz,ir_wall+1] # make sure Vp[1:ir_wall]=1500
 
-   #---Create initial field condition
+   #Create initial field matrices
    vz_init=zeros(nz,nr)
    vphi_init=zeros(nz,nr)
    vr_init=zeros(nz,nr)
@@ -341,11 +334,12 @@ function Schoenberg_solution_initialBC(nr,nz,dr,dz,ir_wall,Vp,
    tpz_init=zeros(nz,nr)
 
 
-   #at iz=src_iz, input XXX_Schoenberg has been assigned
-   #Now I propagate this to assign initial matrices
-   #Note, XXX_Schoenberg was assumed BC src, and stress values are delayed by dt/2
+   #At the spatial location of iz=src_iz, XXX_Schoenberg has been assigned in the time domain.
+   #To populate the initial field matrices, I will assume that this wave propagates in space.
+   #Note, XXX_Schoenberg was assumed as boundary conditions, where stress values are delayed by dt/2.
 
-   #==w/o interpotaion (fast)
+   # Without interpotaion (fast, but less accurate)
+   #==
    is_zero=Int(round(delay/dt)+1)
    for iz=src_iz:nz
       is_tmp=Int(round((iz-src_iz)*dz/Vp_solid/dt))+is_zero
@@ -382,7 +376,7 @@ function Schoenberg_solution_initialBC(nr,nz,dr,dz,ir_wall,Vp,
    end
    ==#
 
-   #With interpolation (slow)
+   # With interpolation (slow, but accurate)
    itvec_tmp=zeros(1,nz)
    for iz=src_iz:nz
       it_tmp=(iz-src_iz)*dz/Vp_solid+delay
@@ -433,7 +427,7 @@ end
 
 
 #------------------------
-# Solving BC problem in Peng
+# Solving BC problem in Peng (1994)
 #------------------------
 function SolvePengBC(w,angle_delta,rb,Vp_fluid,Vp_solid,Vs_solid,Rho_fluid,Rho_solid)
 
@@ -457,7 +451,7 @@ function SolvePengBC(w,angle_delta,rb,Vp_fluid,Vp_solid,Vs_solid,Rho_fluid,Rho_s
     Coef0=inv(D)*Ep
     A0,B0,C0=Coef0[1],Coef0[2],Coef0[3]
 
-#==Schoenberg's ABC
+#==Schoenberg's coefficient (A, B, and C)
     cT=sqrt(Vp_fluid^2/(1+Rho_fluid*Vp_fluid^2/(Rho_solid*Vs_solid^2)))
     g=(Vs_solid/Vp_solid)^2
     KF=kf*rb
@@ -683,26 +677,26 @@ function initialize_planewave(nr,nz,dr,dz,ir_wall,Rho,H,G,nt,tvec,dt,src_func,sr
 
 
    #ir_wall: assuming Vp[1:ir_wall]=1500
-   println("-------------")
-   println("Initializing plane-wave initial conditions...")
+   println("--------------------------------")
+   println("Plane-wave initial conditions...")
 
 
 #---initializing field matrices
    vr,vz,trr,tpp,tzz,trz,vfr,vfz,pf=init_fields_Por(nz,nr) #
-#--update: by using RightBC1D, and complete filling values till Right edge, no taper and offset are used.
+# By using RightBC1D, and complete filling values till Right edge, no taper and offset are required.
    ntaper=0
    noffset=0
 
-# Schoenberg's plane wave solution as BC
-# In order to use Modulues (PengMod.jl) for elastic media, first creating elastic properties matrices (Vp,Vs,Rho)
-# as large as modeling domain, but accessing only elastic part (please make sure if this is the case)
+# Schoenberg's plane wave solution as boundary conditions
+# We create elastic matrices (Vp,Vs,Rho) of the entire modeling domain
+# but access only the elastic part (please make sure if this is the case).
    Vp_E=(H./Rho).^0.5
    Vs_E=(G./Rho).^0.5
    Rho_E=zeros(nz,nr)
    mycopy_mat(Rho,Rho_E,nz,nr)
 
 
-   #--now module is available--
+   #
    vz_srcBC,vr_srcBC,vphi_srcBC,
    trr_srcBC,tpp_srcBC,tzz_srcBC,trp_srcBC,trz_srcBC,tpz_srcBC,
    src_iz=Peng_solution(nr,nz,dr,dz,ir_wall,tvec,src_func,srcdepth,f0,ntaper,noffset,Vp_E,Vs_E,Rho_E)
@@ -710,8 +704,8 @@ function initialize_planewave(nr,nz,dr,dz,ir_wall,Rho,H,G,nt,tvec,dt,src_func,sr
    #make sure tvec of vel and stress are correct
    tvec_vel=copy(tvec)
    tvec_stress=copy(tvec)
-   tvec_stress=tvec_stress+dt/2*ones(nt) #default. see also Peng_solution02
-#   tvec_stress=tvec_stress-dt/2*ones(nt) #Needs pre-update. see also Peng_solution02
+   tvec_stress=tvec_stress+dt/2*ones(nt) #default. see also Peng_solution
+#   tvec_stress=tvec_stress-dt/2*ones(nt) #Needs pre-update. see also Peng_solution
 
    vz_init,vr_init,vphi_init,trr_init,tpp_init,tzz_init,
    trp_init,trz_init,tpz_init=Schoenberg_solution_initialBC(nr,nz,dr,dz,ir_wall,Vp_E,
@@ -722,149 +716,17 @@ function initialize_planewave(nr,nz,dr,dz,ir_wall,Rho,H,G,nt,tvec,dt,src_func,sr
                               ntaper,noffset)
 
    # Schoenberg's plane wave solution as initial condition
-    println("====Plane wave source=====")
+    println("Plane wave source: depth, index")
     @show srcdepth,src_iz
+    println("Plane-wave initial conditions...finished")
+    println("--------------------------------")
 
-
-
-      #--Receiver positions----
-      #==
-         nrec=8
-         recgeom=zeros(nrec,2) #(z,r)
-         for irec=1:nrec
-            recgeom[irec,1]=srcgeom[1,1]-2.7432-(irec-1)*0.1524
-            recgeom[irec,2]=0.0
-         end
-      ==#
-      #---borehole center
-      nrec1=nz
-      recgeom1=zeros(nrec1,2) #(z,r)
-      for irec=1:nrec1
-         recgeom1[irec,1]=dz*(irec-1)
-         recgeom1[irec,2]=0.0
-      end
-
-      #--Receivers without interpolation
-      rec_vr1,rec_vz1,rec_tii1,index_allrec_vr1,index_allrec_vz1,index_allrec_tii1=init_receiver(recgeom1,nrec1,dr,dz,nr,nz,nt)
-
-      #---corresponding borehole wall
-      # exact boundrary is at (ir_wall-1)*dr+dr/2
-      # coincident location: vr and trz
-      # dr/2 inside elastci media: vz,tii,vphi,tpz
-      recgeom2=zeros(nrec1,2) #(z,r)
-      #--collect indexes for vr
-      #---homogeneous R version
-      for irec=1:nrec1
-         recgeom2[irec,1]=dz*(irec-1)
-         recgeom2[irec,2]=(ir_wall-1)*dr+dr/2
-      end
-      #---inhomogeneous R version (assuming Vp[1:ir_wall@z]=1500)
-   #   for irec=1:nrec1
-   #      ir_wall_now=maximum(findall(x->x==1500,Vp[irec,:])) #assuming nrec=nz
-   #      recgeom2[irec,1]=dz*(irec-1)
-   #      recgeom2[irec,2]=(ir_wall_now-1)*dr+dr/2 #this is a position of wall (good for vr)
-   #   end
-
-      #--Receivers without interpolation
-      rec_vr,rec_vz,rec_tii,index_allrec_vr2,index_allrec_vz_dummy,index_allrec_tii_dummy=init_receiver(recgeom2,nrec1,dr,dz,nr,nz,nt)
-      # repeat for tii
-      for irec=1:nrec1
-         recgeom2[irec,1]=dz*(irec-1)
-         recgeom2[irec,2]=(ir_wall-1)*dr+dr
-      end
-   #   for irec=1:nrec1
-   #      ir_wall_now=maximum(findall(x->x==1500,Vp[irec,:])) #assuming nrec=nz
-   #      recgeom2[irec,1]=dz*(irec-1) #this is a position good for tii (same as Vp)
-   #      recgeom2[irec,2]=(ir_wall_now-1)*dr+dr #this is a position of wall+dr/2 (good for vz and tii)
-   #   end
-      #--Receivers without interpolation
-   #   rec_vr,rec_vz,rec_tii,index_allrec_vr_dummy,index_allrec_vz2,index_allrec_tii2=init_receiver(recgeom2,nrec1,dr,dz,nr,nz,nt)
-      rec_vr,rec_vz,rec_tii,index_allrec_vr_dummy,index_allrec_vz_dummy,index_allrec_tii2=init_receiver(recgeom2,nrec1,dr,dz,nr,nz,nt)
-
-      # repeat for vz (be careful Vp is defined at tii and vr, and vz is located in between. Where to define "solid phase")
-      for irec=1:nrec1-1
-         ir_wall_up=maximum(findall(x->x==1500,Vp_E[irec,:])) #assuming nrec=nz
-         ir_wall_down=maximum(findall(x->x==1500,Vp_E[irec+1,:])) #assuming nrec=nz
-         if (ir_wall_up==ir_wall_down)
-            recgeom2[irec,1]=dz*(irec-1)+dz/2 #this is a position good for vz
-            recgeom2[irec,2]=(ir_wall_up-1)*dr+dr #this is a position of wall+dr/2 (good for vz and tii)
-         elseif (ir_wall_up>ir_wall_down) #radius gets smaller
-            recgeom2[irec,1]=dz*(irec-1)+dz/2 #this is a position good for vz
-            recgeom2[irec,2]=(ir_wall_up-1)*dr+dr #
-         elseif (ir_wall_up<ir_wall_down) #radius gets larger
-            recgeom2[irec,1]=dz*(irec-1)+dz/2 #this is a position good for vz
-            recgeom2[irec,2]=(ir_wall_down-1)*dr+dr #
-         else
-            error("ERROR in RECGEOM!")
-         end
-
-      end
-      #--Receivers without interpolation
-      rec_vr,rec_vz,rec_tii,index_allrec_vr_dummy,index_allrec_vz2,index_allrec_tii_dummy=init_receiver(recgeom2,nrec1,dr,dz,nr,nz,nt)
-
-
-      #--initializing arrays with correct nrec
-      nrec=nrec1*2
-      rec_vr=zeros(nt,nrec)
-      rec_vz=zeros(nt,nrec)
-      rec_tii=zeros(nt,nrec)
-      #---merge indexes
-      index_allrec_vr=zeros(nrec,2) #z,r
-      index_allrec_vz=zeros(nrec,2) #z,r
-      index_allrec_tii=zeros(nrec,2) #z,r
-      index_allrec_vr[1:nrec1,:]=index_allrec_vr1[1:nrec1,:]
-      index_allrec_vr[nrec1+1:2*nrec1,:]=index_allrec_vr2[1:nrec1,:]
-      index_allrec_vz[1:nrec1,:]=index_allrec_vz1[1:nrec1,:]
-      index_allrec_vz[nrec1+1:2*nrec1,:]=index_allrec_vz2[1:nrec1,:]
-      index_allrec_tii[1:nrec1,:]=index_allrec_tii1[1:nrec1,:]
-      index_allrec_tii[nrec1+1:2*nrec1,:]=index_allrec_tii2[1:nrec1,:]
-
-      index_allrec_vr=map(Int,index_allrec_vr)
-      index_allrec_vz=map(Int,index_allrec_vz)
-      index_allrec_tii=map(Int,index_allrec_tii)
-      #--Receivers with Interpolations.jl (not in main loop yet)
-      #rec_vr,rec_vz,rec_tzz,
-      #wis_allrec_vr,wis_allrec_vz,wis_allrec_tzz=init_receiver_interp(recgeom,nrec,dr,dz,nr,nz,nt)
-
-
-
-      #--Receivers vfr and pf----
-      nrec_PE=nr
-      recgeom_PE=zeros(nrec_PE,2) #(z,r)
-      for irec=1:nrec_PE
-#         recgeom_PE[irec,1]=(273-1)*dz
-         recgeom_PE[irec,1]=(320-1)*dz
-         recgeom_PE[irec,2]=dr*(irec-1)
-      end
-      #--Receivers without interpolation
-      rec_vfr_PE,rec_vfz_PE,rec_pf_PE,index_allrec_vfr_PE,index_allrec_vfz_PE,index_allrec_pf_PE=init_receiver(recgeom_PE,nrec_PE,dr,dz,nr,nz,nt)
-      rec_tii_PE=zeros(size(rec_pf_PE)) #for mean normal stress
-
-      println("Initializing done")
-      println("-------------")
-
-
-      println("Tapering initial field...")
-      Vmax=maximum((H./Rho).^(0.5))
-      wavelength=Vmax/f0*1.5
-      ntaper=21
-      taper_initial_field!(trr_init,nz,nr,dz,src_iz,wavelength,ntaper)
-      taper_initial_field!(tpp_init,nz,nr,dz,src_iz,wavelength,ntaper)
-      taper_initial_field!(tzz_init,nz,nr,dz,src_iz,wavelength,ntaper)
-      taper_initial_field!(trz_init,nz,nr,dz,src_iz,wavelength,ntaper)
-      taper_initial_field!(vr_init,nz,nr,dz,src_iz,wavelength,ntaper)
-      taper_initial_field!(vz_init,nz,nr,dz,src_iz,wavelength,ntaper)
-      println("done.")
-
-#   return m,vr,vphi,vz,trr,tpp,tzz,trp,trz,tpz,mmat,lmat,dt,nt,T,src_func,tvec,src_index,src_dn,nrec,rec_vr,rec_vz,rec_tii,index_allrec_vr,index_allrec_vz,index_allrec_tii
-   return vr,vz,trr,tpp,tzz,trz,vfr,vfz,pf,
-      vz_srcBC,vr_srcBC,
-      trr_srcBC,tpp_srcBC,tzz_srcBC,trz_srcBC,
-      vz_init,vr_init,trr_init,tpp_init,tzz_init,
-      trz_init,
-      src_iz,noffset,
-      nrec,rec_vr,rec_vz,rec_tii,index_allrec_vr,index_allrec_vz,index_allrec_tii,
-      nrec_PE,rec_vfr_PE,rec_pf_PE,rec_tii_PE,index_allrec_vfr_PE,index_allrec_pf_PE,
-      f0
+    return vr,vz,trr,tpp,tzz,trz,vfr,vfz,pf,
+         vz_srcBC,vr_srcBC,
+         trr_srcBC,tpp_srcBC,tzz_srcBC,trz_srcBC,
+         vz_init,vr_init,trr_init,tpp_init,tzz_init,
+         trz_init,
+         src_iz,noffset,
+         f0
 
 end # function init

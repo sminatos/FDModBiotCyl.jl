@@ -311,16 +311,10 @@ end
 
 #---function to create receiver geometry for plane wave experiment ()temporary
 function make_receivers()
-   #--Receiver positions----
-   #==
-      nrec=8
-      recgeom=zeros(nrec,2) #(z,r)
-      for irec=1:nrec
-         recgeom[irec,1]=srcgeom[1,1]-2.7432-(irec-1)*0.1524
-         recgeom[irec,2]=0.0
-      end
-   ==#
-   #---borehole center
+   #-------------------------
+   #  Receiver positions
+   #-------------------------
+   # Center of the borehole
    nrec1=nz
    recgeom1=zeros(nrec1,2) #(z,r)
    for irec=1:nrec1
@@ -328,21 +322,22 @@ function make_receivers()
       recgeom1[irec,2]=0.0
    end
 
-   #--Receivers without interpolation
+   #Receivers without interpolation
    rec_vr1,rec_vz1,rec_tii1,index_allrec_vr1,index_allrec_vz1,index_allrec_tii1=init_receiver(recgeom1,nrec1,dr,dz,nr,nz,nt)
 
-   #---corresponding borehole wall
-   # exact boundrary is at (ir_wall-1)*dr+dr/2
-   # coincident location: vr and trz
-   # dr/2 inside elastci media: vz,tii,vphi,tpz
+   # Borehole wall
+   # Exact boundrary is at (ir_wall-1)*dr+dr/2.
+   # The boundary is the same location as vr and trz.
+   # dr/2 inside of solid media: vz, tii, vphi, tpz
+   #
    recgeom2=zeros(nrec1,2) #(z,r)
-   #--collect indexes for vr
-   #---homogeneous R version
+   #homogeneous R version
    for irec=1:nrec1
       recgeom2[irec,1]=dz*(irec-1)
       recgeom2[irec,2]=(ir_wall-1)*dr+dr/2
    end
-   #---inhomogeneous R version (assuming Vp[1:ir_wall@z]=1500)
+
+   #inhomogeneous R version (assuming Vp[1:ir_wall@z]=1500)
 #   for irec=1:nrec1
 #      ir_wall_now=maximum(findall(x->x==1500,Vp[irec,:])) #assuming nrec=nz
 #      recgeom2[irec,1]=dz*(irec-1)
@@ -365,7 +360,7 @@ function make_receivers()
 #   rec_vr,rec_vz,rec_tii,index_allrec_vr_dummy,index_allrec_vz2,index_allrec_tii2=init_receiver(recgeom2,nrec1,dr,dz,nr,nz,nt)
    rec_vr,rec_vz,rec_tii,index_allrec_vr_dummy,index_allrec_vz_dummy,index_allrec_tii2=init_receiver(recgeom2,nrec1,dr,dz,nr,nz,nt)
 
-   # repeat for vz (be careful Vp is defined at tii and vr, and vz is located in between. Where to define "solid phase")
+   # repeat for vz (be careful where to define "solid phase". Vp is defined at tii. vr and vz is located in between.)
    Vp_E=(H./Rho).^0.5
    Vs_E=(G./Rho).^0.5
    for irec=1:nrec1-1
@@ -389,7 +384,7 @@ function make_receivers()
    rec_vr,rec_vz,rec_tii,index_allrec_vr_dummy,index_allrec_vz2,index_allrec_tii_dummy=init_receiver(recgeom2,nrec1,dr,dz,nr,nz,nt)
 
 
-   #--initializing arrays with correct nrec
+   #--initializing arrays with total nrec
    nrec=nrec1*2
    rec_vr=zeros(nt,nrec)
    rec_vz=zeros(nt,nrec)
@@ -408,11 +403,6 @@ function make_receivers()
    index_allrec_vr=map(Int,index_allrec_vr)
    index_allrec_vz=map(Int,index_allrec_vz)
    index_allrec_tii=map(Int,index_allrec_tii)
-   #--Receivers with Interpolations.jl (not in main loop yet)
-   #rec_vr,rec_vz,rec_tzz,
-   #wis_allrec_vr,wis_allrec_vz,wis_allrec_tzz=init_receiver_interp(recgeom,nrec,dr,dz,nr,nz,nt)
-
-
 
    #--Receivers vfr and pf----
    nrec_PE=nr
@@ -610,7 +600,7 @@ ApplyBCLeft_stress!(vr,vz,trr,tpp,tzz,trz,vfr,vfz,pf,
 
 
 #Additional conditions when Flag_Acoustic/Flag_Elastic
-ApplyBC_stress_AcousticMedia_TEST!(trr,tpp,tzz,trz,pf,Flag_AC,nr,nz) #when Flag_AC==1, then set pf=-(trr+tpp+tzz)/3 and trr=tpp=tzz=-pf
+ApplyBC_stress_AcousticMedia!(trr,tpp,tzz,trz,pf,Flag_AC,nr,nz) #when Flag_AC==1, then set pf=-(trr+tpp+tzz)/3 and trr=tpp=tzz=-pf
 ApplyBC_stress_ElasticMedia_Ou!(pf,Flag_E,nr,nz) #when Flag_E==1, then set pf=0
 
 

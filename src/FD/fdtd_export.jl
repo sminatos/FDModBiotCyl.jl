@@ -6,7 +6,7 @@ export  init_fields_Por,
         ApplyBCLeft_stress!,
         ApplyBCRight_vel!,
         ApplyBCRight_stress!,
-        ApplyBC_stress_AcousticMedia_TEST!,
+        ApplyBC_stress_AcousticMedia!,
         ApplyBC_stress_ElasticMedia_Ou!,
    #---Additional consideration at borehole wall (boreholewall.jl)
         update_vr_vfr_1st_vertical,

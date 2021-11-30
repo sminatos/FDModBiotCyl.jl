@@ -11,7 +11,7 @@ function update_vr_vfr_1st_vertical(vr,trr,tpp,tzz,trz,vfr,pf,
     Prz_T,Prz_B,
     ir_wall,Flag_AC,Flag_E)
     #Acoustic-Poroelastic vertical boundary
-    #Calculating vrw and vr at boundary
+    #Calculating vrw and vr at the boundary
 
     j=ir_wall #wall
     #main region
@@ -19,15 +19,15 @@ function update_vr_vfr_1st_vertical(vr,trr,tpp,tzz,trz,vfr,pf,
 
         #check if I need to activate vfr
         if(Flag_AC[k,j]==1 && Flag_AC[k,j+1]==0 && Flag_E[k,j+1]==0)#
-              #I am accesing [k,j], but definition of r_now changes with each component!
+             #I am accessing [k,j], but the definition of r_now changes with each component!
              r_now=(j-1)*dr+dr/2.0 #for vr (Mittet)
              vr_now=vr_org[k,j]
              trr_f1,trr_b1=trr[k,j+1],trr[k,j]
              trz_f1,trz_b1=trz[k,j],trz[k-1,j] #should be zero
 
              trr_av=0.5*(trr_f1+trr_b1) #this looks ok according to BC (pf=-trr, now trr_b1 is -pf)
-             tpp_av=0.5*(tpp[k,j+1]+tpp[k,j]) #see trr. I am not sure if this is ok for BC
-#             tpp_av=tpp[k,j+1] #test. assuming tpp is discont
+             tpp_av=0.5*(tpp[k,j+1]+tpp[k,j]) #see trr.
+#             tpp_av=tpp[k,j+1] #test. assuming tpp is discontinuous
 
              vfr_now=vfr_org[k,j]
              pf_f1,pf_b1=pf[k,j+1],pf[k,j] #
@@ -44,30 +44,6 @@ function update_vr_vfr_1st_vertical(vr,trr,tpp,tzz,trz,vfr,pf,
                  dz,dr,dt,r_now,rho_av,rhof_av,D1_av,D2_av,0)
              #
 
-             #== TMP
-             drtrr=(trr_f1-trr_b1)/dr
-             dztrz=(trz_f1-trz_b1)/dz
-             A=drtrr+(trr_av-tpp_av)/(r_now)+dztrz #common term in solid and fluid phase
-             drpf=(pf_f1-pf_b1)/dr
-
-             vfr_old=vfr_now
-             vfr_now=(D2_av/2+(D1_av-rhof_av^2/rho_av)/dt)^(-1) * (
-                         (-D2_av/2+(D1_av-rhof_av^2/rho_av)/dt)*vfr_old-drpf-rhof_av/rho_av*A
-                         )
-             dert_vfr=(vfr_now-vfr_old)/dt
-
-             vr_old=vr_now
-             vr_now1=vr_old+dt/rho_av*(A-rhof_av*dert_vfr)
-
-             avrg_vfr=(vfr_now+vfr_old)/2
-             vr_now2=vr_old+dt/rhof_av*(-drpf-D1_av*dert_vfr-D2_av*avrg_vfr)
-             if(vr_now1!=vr_now2)
-                 println("vr is not consistent!",vr_now1,",",vr_now2)
-             end
-             vfr[k,j]=vfr_now
-             vr[k,j]=vr_now1
-             ==# #TMP
-
 
          end #if AC-PE BC
     end #k
@@ -77,15 +53,15 @@ function update_vr_vfr_1st_vertical(vr,trr,tpp,tzz,trz,vfr,pf,
     @inbounds Threads.@threads for k=2:LPML_z
         #check if I need to activate vfr
         if(Flag_AC[k,j]==1 && Flag_AC[k,j+1]==0 && Flag_E[k,j+1]==0)#
-              #I am accesing [k,j], but definition of r_now changes with each component!
+              #I am accessing [k,j], but the definition of r_now changes with each component!
              r_now=(j-1)*dr+dr/2.0 #for vr (Mittet)
              vr_now=vr_org[k,j]
              trr_f1,trr_b1=trr[k,j+1],trr[k,j]
              trz_f1,trz_b1=trz[k,j],trz[k-1,j] #should be zero
 
              trr_av=0.5*(trr_f1+trr_b1) #this looks ok according to BC (pf=-trr, now trr_b1 is -pf)
-             tpp_av=0.5*(tpp[k,j+1]+tpp[k,j]) #see trr. I am not sure if this is ok for BC
-#             tpp_av=tpp[k,j+1] #test. assuming tpp is discont
+             tpp_av=0.5*(tpp[k,j+1]+tpp[k,j]) #see trr.
+#             tpp_av=tpp[k,j+1] #test. assuming tpp is discontinuous
 
              vfr_now=vfr_org[k,j]
              pf_f1,pf_b1=pf[k,j+1],pf[k,j] #
@@ -126,15 +102,15 @@ function update_vr_vfr_1st_vertical(vr,trr,tpp,tzz,trz,vfr,pf,
 
         #check if I need to activate vfr
         if(Flag_AC[k,j]==1 && Flag_AC[k,j+1]==0 && Flag_E[k,j+1]==0)#
-              #I am alywas accesing [k,j], but definition of r_now changes with components!
+              #I am always accessing [k,j], but the definition of r_now changes with components!
              r_now=(j-1)*dr+dr/2.0 #for vr (Mittet)
              vr_now=vr_org[k,j]
              trr_f1,trr_b1=trr[k,j+1],trr[k,j]
              trz_f1,trz_b1=trz[k,j],trz[k-1,j] #should be zero
 
              trr_av=0.5*(trr_f1+trr_b1) #this looks ok according to BC (pf=-trr, now trr_b1 is -pf)
-             tpp_av=0.5*(tpp[k,j+1]+tpp[k,j]) #see trr. I am not sure if this is ok for BC
-#             tpp_av=tpp[k,j+1] #test. assuming tpp is discont
+             tpp_av=0.5*(tpp[k,j+1]+tpp[k,j]) #see trr.
+#             tpp_av=tpp[k,j+1] #test. assuming tpp is discontinuous
 
              vfr_now=vfr_org[k,j]
              pf_f1,pf_b1=pf[k,j+1],pf[k,j] #

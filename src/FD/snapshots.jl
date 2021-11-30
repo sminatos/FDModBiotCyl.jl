@@ -3,9 +3,7 @@
 # initializing snapshots field
 #-----------------------------
 function init_snap(nt,nz,nr,nskip)
-   #---Initializing snapshots
-#   nskip=25
-#   nskip=100
+   #Initializing snapshots
    snapshots_vr,snapshots_vz,nsnap,itvec_snap=init_snapshots_v(nskip,nt,nz,nr)
    snapshots_trr,nsnap,itvec_snap=init_snapshots_t(nskip,nt,nz,nr)
    return nskip,snapshots_trr,snapshots_vr,snapshots_vz,nsnap,itvec_snap

@@ -7,8 +7,8 @@ function myricker2(tvec,f0,delay,derivative_number)
     nt=length(tvec)
     y=zeros(1,nt)
     if (derivative_number==2)
-        println("Myricker: 2nd derivative of Gaussian (Ricker)")
-    #---2nd derivative Gaussian (Ricker)
+        println("Myricker: 2nd derivative of Gaussian (Ricker with a negative sign)")
+    #---2nd derivative Gaussian (Ricker with a negative sign)
     for it=1:nt
      y[it] = -2*pi^2*f0^2*(1.0 - 2.0*(pi^2)*(f0^2)*((tvec[it]-delay).^2)) .* exp(-(pi^2)*(f0^2)*((tvec[it]-delay).^2))
     end

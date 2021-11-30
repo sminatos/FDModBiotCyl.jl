@@ -10,7 +10,7 @@ function PML_save_vel!(memT_vr,memT_vz,memT_vfr,memT_vfz,
     PML_save_vel_Top_Por!(memT_vr,memT_vz,memT_vfr,memT_vfz,vr,vz,vfr,vfz,nr,nz,LPML_z,LPML_r)
     PML_save_vel_Bottom_Por!(memB_vr,memB_vz,memB_vfr,memB_vfz,vr,vz,vfr,vfz,nr,nz,LPML_z,LPML_r)
     PML_save_vel_Right_Por!(memR_vr,memR_vz,memR_vfr,memR_vfz,vr,vz,vfr,vfz,nr,nz,LPML_z,LPML_r)
-end 
+end
 
 #PML: save stress at previous step
 function PML_save_stress!(memT_trr,memT_tpp,memT_tzz,memT_trz,memT_pf,
@@ -40,7 +40,7 @@ function PML_update_vel!(vr,vz,trr,tpp,tzz,trz,vfr,vfz,pf,
                        Prr_BR,Qrp_BR,Pzr_BR,Qzp_BR,Rr_BR,Rp_BR,Rrz_BR,
                        PrrPE_BR,RrPE_BR,RpPE_BR,
                        LPML_z,LPML_r)
-                       
+
     PML_update_velocity_1st_Top_Por!(vr,vz,trr,tpp,tzz,trz,vfr,vfz,pf,
                                      Rho,Rhof,D1,D2,Flag_vf_zero,nr,nz,dr,dz,dt,Prz_T,Pzz_T,PzzPE_T,LPML_z,LPML_r)
     PML_update_velocity_1st_Bottom_Por!(vr,vz,trr,tpp,tzz,trz,vfr,vfz,pf,
@@ -74,7 +74,7 @@ function PML_update_memRS!(Rz_T,Srz_T,RzPE_T,
                            memB_vr,memB_vz,memB_vfr,memB_vfz,
                            memR_vr,memR_vz,memR_vfr,memR_vfz,
                            vr,vz,vfr,vfz,nr,nz,dr,dz,dt,LPML_z,LPML_r,PML_Wz,PML_Wr,PML_IWr,PML_Wz2,PML_Wr2,PML_IWr2)
-    
+
     PML_update_memRS_1st_Top_Por!(Rz_T,Srz_T,RzPE_T,
                                   memT_vr,memT_vz,memT_vfr,memT_vfz,
                                   vr,vz,vfr,vfz,nr,nz,dr,dz,dt,LPML_z,LPML_r,PML_Wz,PML_Wz2)
@@ -245,63 +245,13 @@ function init_PML_profile(LPML_r,LPML_z,Vmax,dr,dz,nr,f0)
  #LPML_ : PML thickness (points)
  #Vmax: maximum velocity
 
- #Try to look at PWL_Wz: when slope is very sharp reflection can occur.
+ #Try to look at PWL_Wz: when slope is very sharp, reflection can occur.
  #                     : The highest point is controled by Ralpha,
  #                     : slope continuing from non-PML to PML is controlled by a, b
  #                     : large Ralpha -> too sharp. large a -> continuation may be discontinous
 
- #---Wang and Tang 2003 eqs (42-43)
-# a=0.25
-# b=0.75
 
- #==--default---
- a=0.0
- b=1.0
- c=0.0
-# Ralpha=1E-8 #required reflection magnitude order: ~log()=3pi(m+1)? m is order of OMEGA function
-
- Ralpha=1E-3
-    
- dvec_r=collect(1:1:LPML_r)
- dvec_z=collect(1:1:LPML_z)
- dvec_r=dvec_r*dr-dr*ones(length(dvec_r)) #0,dr,2dr,3dr... do not change!
- dvec_z=dvec_z*dz-dz*ones(length(dvec_z))
-
- LPML_r_meter=(LPML_r-1)*dr
- LPML_z_meter=(LPML_z-1)*dz
-
-#0,dr,2dr,3dr...
- PML_Wr=-Vmax*log(Ralpha)/LPML_r_meter*(a*dvec_r/LPML_r_meter+b*dvec_r.^2/LPML_r_meter^2+c*dvec_r.^3/LPML_r_meter^3)
- PML_Wz=-Vmax*log(Ralpha)/LPML_z_meter*(a*dvec_z/LPML_z_meter+b*dvec_z.^2/LPML_z_meter^2+c*dvec_z.^3/LPML_z_meter^3)
-#dr/2,dr/2+dr,dr/2+2dr...
- dvec_r2=collect(1:1:LPML_r)
- dvec_z2=collect(1:1:LPML_z)
- dvec_r2=dvec_r2*dr-dr/2.0*ones(length(dvec_r2))
- dvec_z2=dvec_z2*dz-dz/2.0*ones(length(dvec_z2))
- PML_Wr2=-Vmax*log(Ralpha)/LPML_r_meter*(a*dvec_r2/LPML_r_meter+b*dvec_r2.^2/LPML_r_meter^2+c*dvec_r2.^3/LPML_r_meter^3)
- PML_Wz2=-Vmax*log(Ralpha)/LPML_z_meter*(a*dvec_z2/LPML_z_meter+b*dvec_z2.^2/LPML_z_meter^2+c*dvec_z2.^3/LPML_z_meter^3)
-
-#Analytical integral assuming specific form PML_Wr=P0(ar/L+br^2/L^2)
-#0,dr,2dr,3dr... from r0
-r0=(nr-LPML_r)*dr #PML just starts at this R (Wr=0): location of tii
-dvec_r_global=dvec_r+r0*ones(length(dvec_r)) #r0+0, r0+dr, r0+2dr, ...
-P0=-Vmax*log(Ralpha)/LPML_r_meter
-PML_IWr=P0*(1.0/2.0*a/LPML_r_meter*(dvec_r).^2+
-            1.0/3.0*b/LPML_r_meter^2*(dvec_r).^3+
-            1.0/4.0*c/LPML_r_meter^3*(dvec_r).^4
-            )./dvec_r_global
-
-#dr/2,dr/2+dr,dr/2+2dr... from r0
-#  PML_IWr2=-Vmax*log(Ralpha)/LPML_r_meter*(1.0/2.0*a*dvec_r2/LPML_r_meter+1.0/3.0*b*dvec_r2.^2/LPML_r_meter^2)
-dvec_r2_global=dvec_r2+r0*ones(length(dvec_r))
-PML_IWr2=P0*(1.0/2.0*a/LPML_r_meter*(dvec_r2).^2+
-            1.0/3.0*b/LPML_r_meter^2*(dvec_r2).^3+
-            1.0/4.0*b/LPML_r_meter^3*(dvec_r2).^4
-            )./dvec_r2_global
-
-  ==#
-
-    #--test---Komatisch profile, N=2
+    #Komatisch profile, N=2
     #PML_Wr=d0(r^2/L^2)-amax(r/L-1)
     LPML_r_meter=(LPML_r-1)*dr
     LPML_z_meter=(LPML_z-1)*dz
@@ -311,7 +261,7 @@ PML_IWr2=P0*(1.0/2.0*a/LPML_r_meter*(dvec_r2).^2+
     d0_z=-3*Vmax*log(Ralpha)/(2*LPML_z_meter)
     #    amax=pi*f0
     amax=0 #do not change! (Wang's PML implementation needs amax=0)
-        
+
     dvec_r=collect(1:1:LPML_r)
     dvec_z=collect(1:1:LPML_z)
     dvec_r=dvec_r*dr-dr*ones(length(dvec_r)) #0,dr,2dr,3dr... do not change!
@@ -491,7 +441,7 @@ function PML_update_velocity_1st_Top_Por!(vr,vz,trr,tpp,tzz,trz,vfr,vfz,pf,
 @inbounds Threads.@threads for j=2:nr-LPML_r #assumig LPML_r>2
           for k=1:LPML_z
 
-              #I am  accesing [k,j], but definition of r_now changes with each component!
+              #I am accessing [k,j], but the definition of r_now changes with each component!
              if(k!=1)
                  r_now=(j-1)*dr+dr/2.0 #for vr (Mittet)
 
@@ -600,7 +550,7 @@ function PML_update_velocity_1st_Bottom_Por!(vr,vz,trr,tpp,tzz,trz,vfr,vfz,pf,
 @inbounds Threads.@threads for j=2:nr-LPML_r #assumig LPML_r>2
 #          for k=3:LPML_z
           for k=nz-LPML_z+1:nz
-              #I am  accesing [k,j], but the definition of r_now changes with each component!
+              #I am accessing [k,j], but the definition of r_now changes with each component!
              r_now=(j-1)*dr+dr/2.0 #for vr (Mittet)
 
              vr_now=vr[k,j]
@@ -705,7 +655,7 @@ function PML_update_velocity_1st_Right_Por!(vr,vz,trr,tpp,tzz,trz,vfr,vfz,pf,
     #1st order
 @inbounds Threads.@threads  for j=nr-LPML_r+1:nr
           for k=LPML_z+1:nz-LPML_z #assuming LPML_r>2
-              #I am alywas accesing [k,j], but definition of r_now changes with components!
+              #I am accessing [k,j], but the definition of r_now changes with components!
              if(j!=nr)
 
                  r_now=(j-1)*dr+dr/2.0 #for vr (Mittet)
@@ -811,7 +761,7 @@ function PML_update_velocity_1st_TopRight_Por!(vr,vz,trr,tpp,tzz,trz,vfr,vfz,pf,
     #1st order
 @inbounds Threads.@threads for j=nr-LPML_r+1:nr #assumig LPML_r>2
           for k=1:LPML_z
-              #I am accesing [k,j], but the definition of r_now changes with each component!
+              #I am accessing [k,j], but the definition of r_now changes with each component!
              if(k!=1 && j!=nr)
                  r_now=(j-1)*dr+dr/2.0 #for vr (Mittet)
 
@@ -857,7 +807,7 @@ function PML_update_velocity_1st_TopRight_Por!(vr,vz,trr,tpp,tzz,trz,vfr,vfz,pf,
                     Prz_TR[LPML_z-k+1,j-nr+LPML_r]+
                     Prr_TR[LPML_z-k+1,j-nr+LPML_r]+
                     1.0/r_now*Qrp_TR[LPML_z-k+1,j-nr+LPML_r]) #elastic PML
-                 
+
                  dert_vfr=(vfr[k,j]-vfr_old)/dt
                  vr[k,j]=vr[k,j]-dt*rhof_av/rho_av*dert_vfr #poroelastic PML
              end #if k==1, j==nr
@@ -906,7 +856,7 @@ function PML_update_velocity_1st_TopRight_Por!(vr,vz,trr,tpp,tzz,trz,vfr,vfz,pf,
                 Pzz_TR[LPML_z-k+1,j-nr+LPML_r]+
                 Pzr_TR[LPML_z-k+1,j-nr+LPML_r]+
                 1.0/r_now*Qzp_TR[LPML_z-k+1,j-nr+LPML_r]) #elastic PML
-             
+
               dert_vfz=(vfz[k,j]-vfz_old)/dt
              vz[k,j]=vz[k,j]-dt*rhof_av/rho_av*dert_vfz #poroelastic PML
 
@@ -927,7 +877,7 @@ function PML_update_velocity_1st_BottomRight_Por!(vr,vz,trr,tpp,tzz,trz,vfr,vfz,
     #1st order
 @inbounds Threads.@threads for j=nr-LPML_r+1:nr #assumig LPML_r>2
     for k=nz-LPML_z+1:nz #this points normal field index
-              #I am accesing [k,j], but the definition of r_now changes with each component!
+              #I am accessing [k,j], but the definition of r_now changes with each component!
              if(j!=nr)
                  r_now=(j-1)*dr+dr/2.0 #for vr (Mittet)
 
@@ -973,7 +923,7 @@ function PML_update_velocity_1st_BottomRight_Por!(vr,vz,trr,tpp,tzz,trz,vfr,vfz,
                     Prz_BR[k-nz+LPML_z,j-nr+LPML_r]+
                     Prr_BR[k-nz+LPML_z,j-nr+LPML_r]+
                     1.0/r_now*Qrp_BR[k-nz+LPML_z,j-nr+LPML_r]) #elastic PML
-                 
+
                  dert_vfr=(vfr[k,j]-vfr_old)/dt
                  vr[k,j]=vr[k,j]-dt*rhof_av/rho_av*dert_vfr #poroelastic PML
              end #j==nr
@@ -1023,7 +973,7 @@ function PML_update_velocity_1st_BottomRight_Por!(vr,vz,trr,tpp,tzz,trz,vfr,vfz,
                     Pzz_BR[k-nz+LPML_z,j-nr+LPML_r]+
                     Pzr_BR[k-nz+LPML_z,j-nr+LPML_r]+
                     1.0/r_now*Qzp_BR[k-nz+LPML_z,j-nr+LPML_r]) #elastic PML
-                 
+
                  dert_vfz=(vfz[k,j]-vfz_old)/dt
                  vz[k,j]=vz[k,j]-dt*rhof_av/rho_av*dert_vfz  #poroelastic PML
              end #if k==nz
@@ -1048,7 +998,7 @@ function PML_update_stress_1st_Top_Por!(vr,vz,trr,tpp,tzz,trz,vfr,vfz,pf,
     # modified rhomat->lmat,mmat
 @inbounds Threads.@threads for j=2:nr-LPML_r
           for k=1:LPML_z
-             #I am accesing [k,j], but the definition of r_now changes with each component!
+             #I am accessing [k,j], but the definition of r_now changes with each component!
              if(k!=1)
                  r_now=(j-1)*dr #for trr,tpp,tzz,tpz Mittet
 
@@ -1153,7 +1103,7 @@ function PML_update_stress_1st_Bottom_Por!(vr,vz,trr,tpp,tzz,trz,vfr,vfz,pf,
 
 @inbounds Threads.@threads for j=2:nr-LPML_r
           for k=nz-LPML_z+1:nz
-             #I am accesing [k,j], but the definition of r_now changes with each component!
+             #I am accessing [k,j], but the definition of r_now changes with each component!
              r_now=(j-1)*dr #for trr,tpp,tzz,tpz Mittet
 
              vr_f1,vr_b1=vr[k,j],vr[k,j-1]
@@ -1256,7 +1206,7 @@ function PML_update_stress_1st_Right_Por!(vr,vz,trr,tpp,tzz,trz,vfr,vfz,pf,
 
 @inbounds Threads.@threads  for j=nr-LPML_r+1:nr
         for k=LPML_z+1:nz-LPML_z #assuming LPML_r>2
-             #I am accesing [k,j], but the definition of r_now changes with each component!
+             #I am accessing [k,j], but the definition of r_now changes with each component!
              r_now=(j-1)*dr #for trr,tpp,tzz,tpz Mittet
 
              vr_f1,vr_b1=vr[k,j],vr[k,j-1]
@@ -1366,7 +1316,7 @@ function PML_update_stress_1st_TopRight_Por!(vr,vz,trr,tpp,tzz,trz,vfr,vfz,pf,
 
 @inbounds Threads.@threads  for j=nr-LPML_r+1:nr #
           for k=1:LPML_z
-             #I am accesing [k,j], but the definition of r_now changes with each component!
+             #I am accessing [k,j], but the definition of r_now changes with each component!
              if(k!=1)
                  r_now=(j-1)*dr #for trr,tpp,tzz,tpz Mittet
 
@@ -1389,7 +1339,7 @@ function PML_update_stress_1st_TopRight_Por!(vr,vz,trr,tpp,tzz,trz,vfr,vfz,pf,
                  #Rp_TR=Rp_TR*0
                  #Rr_TR=Rr_TR*0
                  #---tmptmp
-                 
+
                 trr_now=trr[k,j]
                 trr[k,j]=update_trr_1st_Por(trr_now,vr_f1,vr_b1,vz_f1,vz_b1,vr_av,
                        vfr_f1,vfr_b1,vfz_f1,vfz_b1,vfr_av,
@@ -1496,7 +1446,7 @@ function PML_update_stress_1st_BottomRight_Por!(vr,vz,trr,tpp,tzz,trz,vfr,vfz,pf
 
 @inbounds Threads.@threads  for j=nr-LPML_r+1:nr #assumig LPML_r>2
     for k=nz-LPML_z+1:nz
-             #I am accesing [k,j], but the definition of r_now changes with each component!
+             #I am accessing [k,j], but the definition of r_now changes with each component!
              r_now=(j-1)*dr #for trr,tpp,tzz,tpz Mittet
 
              vr_f1,vr_b1=vr[k,j],vr[k,j-1]
@@ -2865,7 +2815,7 @@ j=1
 #PML (TOP)
 for k=1:LPML_z
 
-    #I am alywas accesing [k,j], but definition of r_now changes with components!
+    #I am accessing [k,j], but the definition of r_now changes with components!
    if(k!=1)
        r_now=(j-1)*dr+dr/2.0 #for vr (Mittet)
 
@@ -2987,7 +2937,7 @@ j=1
 #PML (Bottom)
 for k=nz-LPML_z+1:nz
 
-    #I am accesing [k,j], but the definition of r_now changes with each component!
+    #I am accessing [k,j], but the definition of r_now changes with each component!
    r_now=(j-1)*dr+dr/2.0 #for vr (Mittet)
 
    vr_now=vr[k,j]
@@ -3107,7 +3057,7 @@ j=1
 
  #PML(Top)
  for k=1:LPML_z #2nd order FD
-    #I am alywas accesing [k,j], but definition of r_now changes with components!
+    #I am accessing [k,j], but the definition of r_now changes with components!
     if(k!=1)
         r_now=(j-1)*dr #for trr,tpp,tzz,tpz Mittet
 
@@ -3185,7 +3135,7 @@ j=1
 #        G_av=2.0*gj1*gj2/(gj1+gj2)
        #Guan
         G_av=1/4*(1/Gmat[k,j]+1/Gmat[k+1,j]+1/Gmat[k,j+1]+1/Gmat[k+1,j+1])
-        G_av=1/G_av    
+        G_av=1/G_av
     end
 
     vr_f1,vr_b1=vr[k+1,j],vr[k,j]
@@ -3223,7 +3173,7 @@ j=1
 
  #PML(Bottom)
  for k=nz-LPML_z+1:nz #2nd order FD
-    #I am accesing [k,j], but the definition of r_now changes with each component!
+    #I am accessing [k,j], but the definition of r_now changes with each component!
     r_now=(j-1)*dr #for trr,tpp,tzz,tpz Mittet
 
     vr_f1,vr_b1=vr[k,j],-vr[k,j] #symmtr
@@ -3313,4 +3263,3 @@ end #k (z)
 
 
 end #function
-

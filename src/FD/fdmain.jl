@@ -1,5 +1,5 @@
 # Poroelastic FD in cylindrical coordinate system
-# main staggered-grid finite differencing functions
+# main staggered grid finite difference functions
 
 #-----------------------------
 # initializing field variables
@@ -26,7 +26,7 @@ function update_vr(vr_now,trr_f,trr_b,trz_f,trz_b,trr_av,tpp_av,
     trp_now,dz,dr,dt,r_now,Rho,m)
     #first-order difference
     #X_now: current time, current position [k,j]
-    #X_f: foward position (trr[k,j],trz[k+1,j])
+    #X_f: forward position (trr[k,j],trz[k+1,j])
     #X_b: backward position (trr[k,j-1],trz[k,j])
     #_av: averaged values (tpp_av,trr_av)
     #trp is at the same location
@@ -43,7 +43,7 @@ function update_vz(vz_now,trz_f,trz_b,tzz_f,tzz_b,trz_av,
     tpz_now,dz,dr,dt,r_now,Rho,m)
     #first-order difference
     #X_now: current time, current position [k,j]
-    #X_f: foward position (trz[k,j+1],tzz[k,j])
+    #X_f: forward position (trz[k,j+1],tzz[k,j])
     #X_b: backward position (trz[k,j],tzz[k-1,j])
     #_av: averaged values (trz_av)
     #tpz is at the same location
@@ -62,7 +62,7 @@ function update_vr_1st_Por(vr_now,vfr_now,
     dz,dr,dt,r_now,Rho,Rhof,D1,D2,Flag_vf_zero)
     #first-order difference, 2nd-order accuracy (Graves 1996)
     #X_now: current time, current position [k,j]
-    #X_f: foward position (trr[k,j],trz[k+1,j]) 1:nearest, 2:next nearest
+    #X_f: forward position (trr[k,j],trz[k+1,j]) 1:nearest, 2:next nearest
     #X_b: backward position (trr[k,j-1],trz[k,j]) 1:nearest, 2:next nearest
     #_av: averaged values (tpp_av,trr_av) --> will be calculated in this routine
     #trp is at the same location (not used)
@@ -104,7 +104,7 @@ function update_vz_1st_Por(vz_now,vfz_now,
     dz,dr,dt,r_now,Rho,Rhof,D1,D2,Flag_vf_zero)
     #first-order difference, 2nd-order accuracy (Graves 1996)
     #X_now: current time, current position [k,j]
-    #X_f: foward position (trz[k,j+1],tzz[k,j]) 1:nearest, 2:next nearest
+    #X_f: forward position (trz[k,j+1],tzz[k,j]) 1:nearest, 2:next nearest
     #X_b: backward position (trz[k,j],tzz[k-1,j]) 1:nearest, 2:next nearest
     #_av: averaged values (trz_av) --> will be calculated in this routine
     #tpz is at the same location
@@ -150,7 +150,7 @@ function update_velocity_1st_Por!(vr,vz,trr,tpp,tzz,trz,vfr,vfz,pf,
 
 @inbounds Threads.@threads for j=2:nr-LPML_r
     for k=LPML_z+1:nz-LPML_z
-          #I am accesing [k,j], but the definition of r_now changes with each component!
+          #I am accessing [k,j], but the definition of r_now changes with each component!
          r_now=(j-1)*dr+dr/2.0 #for vr (Mittet)
          vr_now=vr[k,j]
          trr_f1,trr_b1=trr[k,j+1],trr[k,j]
@@ -202,7 +202,7 @@ function update_velocity_1st_Por!(vr,vz,trr,tpp,tzz,trz,vfr,vfz,pf,
      end #k (z)
 end #j (r)
 
- #Surrounding region (exept for edge) is evaluated using 1st order FD
+ #Surrounding region (except for the model edges) is evaluated using 1st order FD
  # k=2 & j=2:nr-1, k=nz-1 & j=2:nr-1, j=nr-1 & k=2:nz-1
  #--> inside PML. Skipped.
 end #function
@@ -217,12 +217,12 @@ function update_trr_1st_Por(trr_now,vr_f,vr_b,vz_f,vz_b,vr_av,
 
     #first-order difference
     #X_now: current time, current position [k,j]
-    #X_f: foward position (vr[k,j+1],vz[k+1,j])
+    #X_f: forward position (vr[k,j+1],vz[k+1,j])
     #X_b: backward position (vr[k,j],vz[k,j])
     #_av: averaged values (vr_av)
     #vphi is at the same location
     #r_now: current radial position @trr
-    #m: order (0: monopole, 1:dipole)
+
     drvr=vr_f-vr_b
     drvr=drvr/dr
     dzvz=vz_f-vz_b
@@ -246,12 +246,12 @@ function update_tpp_1st_Por(tpp_now,vr_f,vr_b,vz_f,vz_b,vr_av,
 
     #first-order difference
     #X_now: current time, current position [k,j]
-    #X_f: foward position (vr[k,j+1],vz[k+1,j])
+    #X_f: forward position (vr[k,j+1],vz[k+1,j])
     #X_b: backward position (vr[k,j],vz[k,j])
     #_av: averaged values (vr_av)
     #vphi is at the same location
     #r_now: current radial position @trr
-    #m: order (0: monopole, 1:dipole)
+
     drvr=vr_f-vr_b
     drvr=drvr/dr
     dzvz=vz_f-vz_b
@@ -275,7 +275,7 @@ function update_tzz_1st_Por(tzz_now,vr_f,vr_b,vz_f,vz_b,vr_av,
 
     #first-order difference
     #X_now: current time, current position [k,j]
-    #X_f: foward position (vr[k,j+1],vz[k+1,j])
+    #X_f: forward position (vr[k,j+1],vz[k+1,j])
     #X_b: backward position (vr[k,j],vz[k,j])
     #_av: averaged values (vr_av)
     #vphi is at the same location
@@ -301,7 +301,7 @@ function update_trz(trz_now,vr_f,vr_b,vz_f,vz_b,
     dz,dr,dt,r_now,mu,m)
     #first-order difference
     #X_now: current time, current position [k,j]
-    #X_f: foward position (vr[k,j],vz[k,j])
+    #X_f: forward position (vr[k,j],vz[k,j])
     #X_b: backward position (vr[k-1,j],vz[k,j-1])
     #_av: averaged values ()
     #-- is at the same location
@@ -318,12 +318,12 @@ function update_pf_1st_Por(pf_now,vr_f,vr_b,vz_f,vz_b,vr_av,
     dz,dr,dt,r_now,C,M)
     #first-order difference, 2nd-order accuracy (Graves 1996)
     #X_now: current time, current position [k,j]
-    #X_f: foward position (vr[k,j+1],vz[k+1,j]) 1:nearest, 2:next nearest
+    #X_f: forward position (vr[k,j+1],vz[k+1,j]) 1:nearest, 2:next nearest
     #X_b: backward position (vr[k,j],vz[k,j]) 1:nearest, 2:next nearest
     #_av: averaged values (vr_av) --> will be calculated in this routine
     #vphi is at the same location
     #r_now: current radial position @trr
-    #m: order (0: monopole, 1:dipole), m=0 only!
+
 
     drvr=vr_f-vr_b
     drvr=drvr/dr
@@ -353,7 +353,7 @@ function update_stress_1st_Por!(vr,vz,trr,tpp,tzz,trz,vfr,vfz,pf,
 #      for k=3:nz-2
 @inbounds Threads.@threads for j=2:nr-LPML_r
       for k=LPML_z+1:nz-LPML_z
-         #I am accesing [k,j], but definition of r_now changes with each component!
+         #I am accessing [k,j], but the definition of r_now changes with each component!
          r_now=(j-1)*dr #for trr,tpp,tzz,tpz Mittet
 
          vr_f1,vr_b1=vr[k,j],vr[k,j-1]
@@ -413,7 +413,7 @@ function update_stress_1st_Por!(vr,vz,trr,tpp,tzz,trz,vfr,vfz,pf,
    end #k (z)
 end #j (r)
 
-#Surrounding region (exept for edge) is evaluated using 1st order FD
+#Surrounding region (except for the model edges) is evaluated using 1st order FD
 # k=2 & j=2:nr-1, k=nz-1 & j=2:nr-1, j=nr-1 & k=2:nz-1
 #--> inside PML. Skipped.
 
@@ -458,8 +458,6 @@ function ApplyBCLeft_velocity_1st_Por!(vr,vz,trr,tpp,tzz,trz,vfr,vfz,pf,
 #m=0 only!
 #new version to ignore PML region
 
-
-#THIS FUNCTION MIGHT NEED UPDATE IN ORDER TO SEPARATELY APPLY BC AT PML-Z REGION!
 
 #Borehole axis (Left Edge): d/dr=0 (Symmetric BC)
 j=1
@@ -506,11 +504,11 @@ for k=LPML_z+1:nz-LPML_z #caution !
 
         #Experimental (Randall type)
         trz_f1,trz_b1=trz[k,j],-trz[k,j] #symtr (assume Randall's trz=0. not Mittet sym. this was nessesary.)
-    
+
         drtrz=(trz_f1-trz_b1)
         drtrz=drtrz/dr
 
-        A=2.0*drtrz+dztzz    
+        A=2.0*drtrz+dztzz
 
         vfz_now=vfz[k,j]
         pf_f1,pf_b1=pf[k+1,j],pf[k,j]
@@ -533,8 +531,6 @@ for k=LPML_z+1:nz-LPML_z #caution !
         vfz[k,j]=vfz_now
 
         vz[k,j]=vz_now+dt/rho_av*(A-rhof_av*dert_vfz)
-#        vz[k,j]=vz_now+dt/rho_av*(4trz_f1/dr+dztzz)
-    #----END THIS PART NEEDS CONSIDERATION FOR Poroelasticity
 
 end #k (z)
 
@@ -562,7 +558,7 @@ function ApplyBCLeft_stress!(vr,vz,trr,tpp,tzz,trz,vfr,vfz,pf,
                                              M,C,H,G,nr,nz,dr,dz,dt,
                                              Rz_B,Srz_B,RzPE_B,
                                              LPML_z)
-    
+
 end
 
 
@@ -590,9 +586,7 @@ for k=LPML_z+1:nz-LPML_z
         r_now=(j-1)*dr #for trr,tpp,tzz,tpz Mittet
 
         trr_now=trr[k,j]
-#            vr_f1,vr_b1=vr[k,j],vr[k,j-1]
-        vr_f1,vr_b1=vr[k,j],-vr[k,j]
-
+        vr_f1,vr_b1=vr[k,j],-vr[k,j] #symmtr
         vz_f1,vz_b1=vz[k,j],vz[k-1,j]
 
         vfr_f1,vfr_b1=vfr[k,j],-vfr[k,j] #symmtr
@@ -636,7 +630,7 @@ for k=LPML_z+1:nz-LPML_z
                             -C*(2drvr+dzvz)
                             -M*(2drvfr+dzvfz)
                             )
-    
+
         #---trp and trz not on left edge!
         r_now=(j-1)*dr+dr/2.0 #for trp,trz Mittet
         trz_now=trz[k,j]
@@ -666,7 +660,7 @@ end #function
 #-----------------------------
 # Boundary conditions in acoustic media
 #-----------------------------
-function ApplyBC_stress_AcousticMedia_TEST!(trr,tpp,tzz,trz,pf,Flag_AC,nr,nz)
+function ApplyBC_stress_AcousticMedia!(trr,tpp,tzz,trz,pf,Flag_AC,nr,nz)
     #when FlagAC==1, then set pf=-mean(tii) and tau=-pf*eye
     @inbounds Threads.@threads for j=1:nr
         for k=1:nz
@@ -730,9 +724,6 @@ function ApplyBCRight_velocity1D_Por01!(origin_r,vr,vz,
     vfr,vfz,pf,
     Rho,Rhof,D1,D2,Flag_vf_zero,nr,nz,dr,dz,dt)
     #updating velocity on Right most edge (it was Neumann BC), assuming only 1D wave propagation
-    #testing for plane wave inciden ce
-    #assuming LVTS, region 2 (may be this assumption is not nessesary)
-
     #Por01: Poroelatic version (Note: 1st order)
 
     #nonzero values at j=nr are
@@ -779,9 +770,6 @@ function ApplyBCRight_stress1D_Por01!(origin_r,vr,vz,
     trz,
     Gmat,nr,nz,dr,dz,dt)
     #updating stress on Right most edge (it was Neumann BC), assuming only 1D wave propagation
-    #testing for plane wave inciden ce
-    #assuming LVTS, region 2 (may be this assumption is not nessesary)
-
     #Por01: Poroelasic version (same as elastic, but reduced number of variables)
 
     #nonzero values @j=nr are
@@ -818,4 +806,3 @@ else
  end #if
 
 end #function
-

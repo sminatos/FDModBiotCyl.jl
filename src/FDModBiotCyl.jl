@@ -8,8 +8,6 @@ module FDModBiotCyl
     include("./FD/fdtd_export.jl")
     include("./planewave/planewave_export.jl")
 
-    greet() = print("Hello my World!")
-
 end
 
 
