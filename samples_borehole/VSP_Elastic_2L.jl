@@ -7,19 +7,14 @@
 # If no graphics (X-windows) required, then ENV["GKSwstype"]="nul"
 #--
 
+using FDModBiotCyl
 #
 using CPUTime
 using ProgressMeter
-#using Interpolations
-using MAT
-#using Base64
-#using DSP
 using Plots
-using JLD
 using DelimitedFiles
 using Printf
 #
-using FDModBiotCyl
 
 #--Suppressing graphics
 #ENV["GKSwstype"]="nul"
@@ -29,10 +24,10 @@ using FDModBiotCyl
 
 
 #================
-Drawing model
+Drawing a model
 ================#
 function drawmodel(Field_Var,nz,dz,nr,dr,LPML_r,LPML_z)
-   println("Model drawing...")
+   println("Drawing a model...")
    zvec=[0:dz:(nz-1)*dz]
    rvec=[0:dr:(nr-1)*dr]
    R=(nr-1)*dr
@@ -50,9 +45,27 @@ function drawmodel(Field_Var,nz,dz,nr,dr,LPML_r,LPML_z)
    println("--------")
 end
 
-#=========================
-Creating two layer model
-=========================#
+#================
+Drawing a snapshot
+================#
+function drawsnap(Data1,nz,dz,nr,dr,LPML_r,LPML_z,title_str)
+   println("Drawing a snapshot...")
+   zvec=[0:dz:(nz-1)*dz]
+   rvec=[0:dr:(nr-1)*dr]
+   R=(nr-1)*dr
+   plt1=heatmap(rvec,zvec,Data1,yflip=true,xlabel="R (m)",ylabel="Z (m)",legend=:none)
+   heatmap!(title=title_str)
+   plot!([0;R],ones(2)*(LPML_z-1)*dz,label="",color=:black)
+   plot!([0;R],ones(2)*((nz-LPML_z+1)*dz),label="",color=:black)
+   plot!(ones(2)*((nr-LPML_r+1)*dr),[0;(nz-1)*dz],label="",color=:black)
+   display(plot(plt1))
+end
+
+
+#==========================================
+Creating a model for a borehole embedded in
+ an elastic two-layer medium
+==========================================#
 function makemodel_2L_Elastic()
    #Necessary input matrices to the main loop function are:
    #Rho: Bulk density
@@ -205,22 +218,6 @@ function makemodel_2L_Elastic()
 end
 
 
-function drawsnap(Data1,nz,dz,nr,dr,LPML_r,LPML_z)
-   println("Snapshot drawing...")
-   zvec=[0:dz:(nz-1)*dz]
-   rvec=[0:dr:(nr-1)*dr]
-   R=(nr-1)*dr
-   plt1=heatmap(rvec,zvec,Data1,yflip=true,xlabel="R (m)",ylabel="Z (m)",legend=:none)
-   plot!([0;R],ones(2)*(LPML_z-1)*dz,label="",color=:black)
-   plot!([0;R],ones(2)*((nz-LPML_z+1)*dz),label="",color=:black)
-   plot!(ones(2)*((nr-LPML_r+1)*dr),[0;(nz-1)*dz],label="",color=:black)
-   display(plot(plt1))
-
-end
-
-
-
-
 #----MAIN loop function----
 function main_loop!(nr,nz,dr,dz,Rho,Rhof,M,C,H,G,D1,D2,dt,nt,T,
    vr,vz,trr,tpp,tzz,trz,
@@ -229,7 +226,7 @@ function main_loop!(nr,nz,dr,dz,Rho,Rhof,M,C,H,G,D1,D2,dt,nt,T,
    Flag_AC,Flag_E,
    nrec,index_allrec_tii,rec_tii,
    LPML_r,LPML_z,PML_Wr,PML_Wz,PML_IWr,PML_Wr2,PML_Wz2,PML_IWr2,
-   snapshots_vr,snapshots_vz,snapshots_trr,nsnap,itvec_snap,nskip)
+   snapshots_vr,snapshots_vz,snapshots_tzz,nsnap,itvec_snap,nskip)
 
 #println("start")
 
@@ -249,12 +246,6 @@ memB_vr,memB_vz,memB_trr,memB_tpp,memB_tzz,memB_trz,memB_vfr,memB_vfz,memB_pf,
 memR_vr,memR_vz,memR_trr,memR_tpp,memR_tzz,memR_trz,memR_vfr,memR_vfz,memR_pf=
 init_memory_variables_Por(LPML_r,LPML_z,nr,nz)
 #return
-
-#required for BC
-vr_old=zeros(nz,nr)
-vz_old=zeros(nz,nr)
-vfr_old=zeros(nz,nr)
-vfz_old=zeros(nz,nr)
 
 
 # Making sure RightBC for stress (zero values are trp and trz)
@@ -278,12 +269,6 @@ PML_save_vel!(memT_vr,memT_vz,memT_vfr,memT_vfz,
               vr,vz,vfr,vfz,nr,nz,LPML_z,LPML_r)
 #println("update vel")
 
-#keep current values before updating velocity for Acoustic-Poroelastic BC later
-mycopy_mat(vr,vr_old,nz,nr)
-mycopy_mat(vz,vz_old,nz,nr)
-mycopy_mat(vfr,vfr_old,nz,nr)
-mycopy_mat(vfz,vfz_old,nz,nr)
-
 # Main velocity update!
 update_velocity_1st_Por!(vr,vz,trr,tpp,tzz,trz,vfr,vfz,pf,Rho,Rhof,D1,D2,Flag_vf_zero,nr,nz,dr,dz,dt,LPML_z,LPML_r)
 
@@ -304,9 +289,6 @@ PML_update_vel!(vr,vz,trr,tpp,tzz,trz,vfr,vfz,pf,
               PrrPE_BR,RrPE_BR,RpPE_BR,
               LPML_z,LPML_r)
 #println("update vel Left")
-#if(ii==1)
-#   error()
-#end
 
 # Making sure RightBC for velocity (zero values are vr)
 ApplyBCRight_vel!(vr,vz,
@@ -322,13 +304,6 @@ ApplyBCLeft_vel!(vr,vz,trr,tpp,tzz,trz,vfr,vfz,pf,
                           Prz_T,Pzz_T,PzzPE_T,
                           Prz_B,Pzz_B,PzzPE_B,
                           LPML_z)
-
-#---Fluid-PE BC @borehole wall (test): replacing velocity values
-update_vr_vfr_1st_vertical(vr,trr,tpp,tzz,trz,vfr,pf,
-    vr_old,vfr_old,
-    Rho,Rhof,D1,D2,nr,nz,dr,dz,dt,LPML_z,
-    Prz_T,Prz_B,
-    ir_wall,Flag_AC,Flag_E)
 
 
 #PML: update memory variables for stress (Rx and Sxx) using velocity at two time steps
@@ -385,7 +360,6 @@ ApplyBCLeft_stress!(vr,vz,trr,tpp,tzz,trz,vfr,vfz,pf,
                     Rz_T,Srz_T,RzPE_T,
                     Rz_B,Srz_B,RzPE_B,
                     LPML_z)
-#return
 
 #--src injection (stress:monopole src)
 #srcamp=-src_func[ii]
@@ -393,12 +367,6 @@ ApplyBCLeft_stress!(vr,vz,trr,tpp,tzz,trz,vfr,vfz,pf,
 #srcapply!(tzz,src_index,src_dn,srcamp)
 #srcapply!(trr,src_index,src_dn,srcamp)
 #srcapply!(tpp,src_index,src_dn,srcamp)
-
-
-#Additional conditions when Flag_Acoustic/Flag_Elastic
-ApplyBC_stress_AcousticMedia!(trr,tpp,tzz,trz,pf,Flag_AC,nr,nz) #when Flag_AC==1, then set pf=-(trr+tpp+tzz)/3 and trr=tpp=tzz=-pf
-ApplyBC_stress_ElasticMedia_Ou!(pf,Flag_E,nr,nz) #when Flag_E==1, then set pf=0
-
 
 
 #--PML: update memory variables for velocity (Pxx and Qxx) using stress at two time steps
@@ -428,11 +396,12 @@ check_snap=findall(x -> x==ii,itvec_snap)
 if (length(check_snap)!=0)
    println("ii=",ii)
    cnt_snap=Int(check_snap[1])
-   get_snapshots!(snapshots_vr,snapshots_vz,cnt_snap,vfr,vz,nr,nz)
-   get_snapshots_t!(snapshots_trr,cnt_snap,pf,nr,nz)
+   get_snapshots!(snapshots_vz,cnt_snap,vz,nr,nz)
+   get_snapshots!(snapshots_vr,cnt_snap,vr,nr,nz)
+   get_snapshots!(snapshots_tzz,cnt_snap,tzz,nr,nz)
 
-   drawsnap(snapshots_vz[:,:,cnt_snap],nz,dz,nr,dr,
-            LPML_r,LPML_z)
+   drawsnap(snapshots_tzz[:,:,cnt_snap],nz,dz,nr,dr,
+            LPML_r,LPML_z,"Snapshots: Tzz")
 
 end
 
@@ -492,7 +461,7 @@ png(tmpfilename_src)
 println("Source signature figure saved in ",tmpfilename_src)
 
 #================================
-Src depth where an initial plane P wave
+Src depth where a plane P wave
 starts to propagate downward
 ================================#
 srcdepth=30. #meter
@@ -536,8 +505,10 @@ rec_tii,index_allrec_tii=init_receiver_hydrophone(recgeom,nrec,dr,dz,nr,nz,nt)
 #==============================
 Snapshot settings
 ==============================#
-nskip,snapshots_trr,snapshots_vr,snapshots_vz,
-nsnap,itvec_snap=init_snap(nt,nz,nr,2000)
+nskip=2000 #change here to adjust time sampling (1~nt)
+snapshots_vz,nsnap,itvec_snap=init_snapshots(nt,nz,nr,nskip)
+snapshots_vr,nsnap,itvec_snap=init_snapshots(nt,nz,nr,nskip)
+snapshots_tzz,nsnap,itvec_snap=init_snapshots(nt,nz,nr,nskip)
 #error()
 
 #==============================
@@ -551,62 +522,20 @@ main_loop!(nr,nz,dr,dz,Rho,Rhof,M,C,H,G,D1,D2,dt,nt,T,
    Flag_AC,Flag_E,
    nrec,index_allrec_tii,rec_tii,
    LPML_r,LPML_z,PML_Wr,PML_Wz,PML_IWr,PML_Wr2,PML_Wz2,PML_IWr2,
-   snapshots_vr,snapshots_vz,snapshots_trr,nsnap,itvec_snap,nskip)
+   snapshots_vr,snapshots_vz,snapshots_tzz,nsnap,itvec_snap,nskip)
 
 
 CPUtoc()
 println("elapsed real time: ", round(time() - start;digits=3)," seconds")
 
-error("Stopped w/o problem.")
+println("FD finished without a problem.")
 
-
-
-   println("Model drawing...")
-   zvec=[0:dz:(nz-1)*dz]
-   rvec=[0:dr:(nr-1)*dr]
-   R=(nr-1)*dr
-   plt1=heatmap(rvec,zvec,vz,yflip=true,xlabel="R (m)",ylabel="Z (m)",ratio=1)
-   plot!([(src_index[2]-1)*dr],[(src_index[1]-1)*dz],label="",markershape=:circle,markersize=5,markerstrokewidth=0,seriescolor=:red)
-   plot!((index_allrec_tii[:,2]-ones(nrec))*dr,(index_allrec_tii[:,1]-ones(nrec))*dz,label="",markershape=:cross,markersize=5,markerstrokewidth=0,seriescolor=:red)
-   plot!([0;R],ones(2)*(LPML_z-1)*dz,label="",color=:black)
-   plot!([0;R],ones(2)*((nz-LPML_z+1)*dz),label="",color=:black)
-   plot!(ones(2)*((nr-LPML_r+1)*dr),[0;(nz-1)*dz],label="",color=:black)
-   display(plot(plt1))
-
-
-
-tmp_filename="out.jld"
-tmp_filename_full=string(@__DIR__,"/",tmp_filename)
-save(tmp_filename_full,
-"tvec",tvec,"nr",nr,"nz",nz,"dr",dr,"dz",dz,"m",m,"dt",dt,"nt",nt,"T",T,"rec_tii",rec_tii,"src_func",src_func,
-"index_allrec_tii",index_allrec_tii,"src_index",src_index,"snapshots_trr",snapshots_trr,
-"itvec_snap",itvec_snap)
-
-
-#tmp_filename="out_reference_back2.mat"
-tmp_filename="out_2L.mat"
-
-iskip_rec=10
-tvec_rec=tvec[1:iskip_rec:end]
-
-tmp_filename_full=string(@__DIR__,"/",tmp_filename)
-matwrite(tmp_filename_full, Dict(
-"tvec"=>tvec,"nr"=>nr,"nz"=>nz,"dr"=>dr,"dz"=>dz,
-"dt"=>dt,"nt"=>nt,"T"=>T,
-"tvec_rec"=>tvec_rec,
-"rec_tii"=>rec_tii[1:iskip_rec:end,:],
-#"rec_vz"=>rec_vz[1:iskip_rec:end,:],
-#"rec_vr"=>rec_vr,
-#"rec_tii_PE"=>rec_tii_PE[1:iskip_rec:end,:],
-#"rec_pf_PE"=>rec_pf_PE[1:iskip_rec:end,:],
-"src_func"=>src_func,
-"index_allrec_tii"=>index_allrec_tii,
-#"index_allrec_vz"=>index_allrec_vz,
-#"index_allrec_vr"=>index_allrec_vr,
-#"index_allrec_pf_PE"=>index_allrec_pf_PE,
-#"src_index"=>src_index,
-#"snapshots_trr"=>snapshots_trr,
-#"snapshots_pf"=>snapshots_trr,
-#"snapshots_vr"=>snapshots_vr,
-"snapshots_vz"=>snapshots_vz,
-"itvec_snap"=>itvec_snap); compress = true)
+println("Plotting receiver responses...")
+FD_z0=269*dz+dz/2 #depth of the impedance boundary
+offset=recgeom[:,1]-FD_z0*ones(size(recgeom[:,1]))
+plt1=heatmap(offset,tvec[1:10:end],-rec_tii[1:10:end,:],xlabel="Depth (m)",ylabel="time (s)",title="pressure")
+heatmap!(yflip=true)
+display(plot(plt1))
+plt2=plot(tvec[:],-rec_tii[:,218],xlabel="Depth (m)",ylabel="time (s)",title="-10.5m",label="",ylims=(-0.11,0.05))
+plt3=plot(tvec[:],-rec_tii[:,323],xlabel="Depth (m)",ylabel="time (s)",title="+10.5m",label="",ylims=(-0.4,0.2))
+display(plot(plt2,plt3,layout=(2,1)))

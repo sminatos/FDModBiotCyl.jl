@@ -139,11 +139,11 @@ function makemodel_homogeneous_PoroElastic()
    ==========================#
    Kappa0[:,:]=ones(nz,nr)*1*9.869*10^(-13) #m^2
    Phi[:,:]=ones(nz,nr)*0.3
-   #--Tortuosity factor from Ou
+   #Tortuosity factor from Ou
    m_Ou=8.0 #
    alpha_inf_Ou=3.0 #tortuosity
    Tot=ones(nz,nr)*(1+2/m_Ou)*alpha_inf_Ou
-   #-Solid parameters from dry_Vp,dry_Vs,grain_density, and grain_bulkmodulus (Table 1 of Ou2019)
+   #Solid parameters from dry_Vp, dry_Vs, grain density, and grain bulk modulus
    Vp_dry=2170.0
    Vs_dry=1360.0
    Rhos[:,:]=ones(nz,nr)*3143.0
@@ -259,12 +259,6 @@ memB_vr,memB_vz,memB_trr,memB_tpp,memB_tzz,memB_trz,memB_vfr,memB_vfz,memB_pf,
 memR_vr,memR_vz,memR_trr,memR_tpp,memR_tzz,memR_trz,memR_vfr,memR_vfz,memR_pf=
 init_memory_variables_Por(LPML_r,LPML_z,nr,nz)
 #return
-
-#initializing following matrices (required for BC)
-vr_old=zeros(nz,nr)
-vz_old=zeros(nz,nr)
-vfr_old=zeros(nz,nr)
-vfz_old=zeros(nz,nr)
 
 
 @showprogress for ii=1:nt
@@ -537,7 +531,7 @@ println("FD finished without a problem.")
 println("Plotting receiver responses...")
 offset=recgeom[:,1]-srcgeom[1]*ones(size(recgeom[:,1]))
 plt1=heatmap(offset[:],tvec[:],rec_vz,xlabel="Offset (m)",ylabel="time (s)",title="Vz")
-heatmap!(flip=true)
+heatmap!(yflip=true)
 plt2=heatmap(offset[:],tvec[:],rec_pf,xlabel="Offset (m)",ylabel="time (s)",title="Pf")
-heatmap!(flip=true)
+heatmap!(yflip=true)
 display(plot(plt1,plt2,layout=(1,2)))

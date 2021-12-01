@@ -3,7 +3,7 @@ using Dierckx
 
 
 #=========================
-Creating homogeneous model
+Creating a homogeneous model
 =========================#
 function makemodel_homogeneous_Elastic()
 #Necessary input matrices to the main loop function are:
@@ -170,7 +170,7 @@ end
 function main_loop!(nr,nz,dr,dz,Rho,Rhof,M,C,H,G,D1,D2,dt,nt,T,
    vr,vz,trr,tpp,tzz,trz,
    vfr,vfz,pf,
-   src_index,src_dn,
+   src_index,src_dn,src_func,
    Flag_AC,Flag_E,
    nrec,rec_vr,rec_vz,index_allrec_vr,index_allrec_vz,
    LPML_r,LPML_z,PML_Wr,PML_Wz,PML_IWr,PML_Wr2,PML_Wz2,PML_IWr2,
@@ -347,7 +347,7 @@ LPML_r=20
 LPML_z=20
 
 #======================
-Creating model
+Creating a model
 ======================#
 nr,nz,dr,dz,Rho,Rhof,M,C,H,G,D1,D2,Flag_AC,Flag_E=makemodel_homogeneous_Elastic()
 
@@ -359,7 +359,7 @@ check_stability01(dt,dr,Vmax,0)
 check_stability01(dt,dz,Vmax,0)
 
 #======================
-Creating src wavelet
+Creating a src wavelet
 ======================#
 f0=100 #src Freq
 delay=1/f0*1.0
@@ -379,7 +379,7 @@ wsigma=1 #std
 src_index,src_dn=get_srcindex_pGauss(srcgeom,dr,dz,wsize,wsigma)
 
 #==============================
-Initializig field variables
+Initializing field variables
 ==============================#
 vr,vz,trr,tpp,tzz,trz,vfr,vfz,pf=init_fields_Por(nz,nr) #
 # Initializing PML field variables
@@ -400,8 +400,10 @@ rec_vr,rec_vz,index_allrec_vr,index_allrec_vz=init_receiver_geophone(recgeom,nre
 #==============================
 Snapshot settings
 ==============================#
-nskip,snapshots_trr,snapshots_vr,snapshots_vz,
-nsnap,itvec_snap=init_snap(nt,nz,nr,30)
+nskip=30 #change here to adjust time sampling (1~nt)
+snapshots_vz,nsnap,itvec_snap=init_snapshots(nt,nz,nr,nskip)
+snapshots_vr,nsnap,itvec_snap=init_snapshots(nt,nz,nr,nskip)
+snapshots_trr,nsnap,itvec_snap=init_snapshots(nt,nz,nr,nskip)
 
 #==============================
 Start main FD Loop
@@ -409,7 +411,7 @@ Start main FD Loop
 main_loop!(nr,nz,dr,dz,Rho,Rhof,M,C,H,G,D1,D2,dt,nt,T,
    vr,vz,trr,tpp,tzz,trz,
    vfr,vfz,pf,
-   src_index,src_dn,
+   src_index,src_dn,src_func,
    Flag_AC,Flag_E,
    nrec,rec_vr,rec_vz,index_allrec_vr,index_allrec_vz,
    LPML_r,LPML_z,PML_Wr,PML_Wz,PML_IWr,PML_Wr2,PML_Wz2,PML_IWr2,

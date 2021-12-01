@@ -7,19 +7,14 @@
 # If no graphics (X-windows) required, then ENV["GKSwstype"]="nul"
 #--
 
+using FDModBiotCyl
 #
 using CPUTime
 using ProgressMeter
-#using Interpolations
-using MAT
-#using Base64
-#using DSP
 using Plots
-using JLD
 using DelimitedFiles
 using Printf
 #
-using FDModBiotCyl
 
 
 #--Suppressing graphics
@@ -30,10 +25,10 @@ using FDModBiotCyl
 
 
 #================
-Drawing model
+Drawing a model
 ================#
 function drawmodel(Field_Var,nz,dz,nr,dr,src_index,index_allrec,nrec,LPML_r,LPML_z)
-   println("Model drawing...")
+   println("Drawing a model...")
    zvec=[0:dz:(nz-1)*dz]
    rvec=[0:dr:(nr-1)*dr]
    R=(nr-1)*dr
@@ -53,7 +48,49 @@ function drawmodel(Field_Var,nz,dz,nr,dr,src_index,index_allrec,nrec,LPML_r,LPML
    println("--------")
 end
 
+#================
+Drawing a snapshot
+================#
+# Four snapshots(2,2)
+function drawsnap_2by2(Data1,Data2,Data3,Data4,
+         nz,dz,nr,dr,src_index,index_allrec_tii,nrec,LPML_r,LPML_z,
+         title_str1,title_str2,title_str3,title_str4)
+   println("Drawing a snapshot...")
+   zvec=[0:dz:(nz-1)*dz]
+   rvec=[0:dr:(nr-1)*dr]
+   R=(nr-1)*dr
+   plt1=heatmap(rvec,zvec,Data1,yflip=true,xlabel="R (m)",ylabel="Z (m)",legend=:none)
+   heatmap!(title=title_str1)
+   plot!([0;R],ones(2)*(LPML_z-1)*dz,label="",color=:black)
+   plot!([0;R],ones(2)*((nz-LPML_z+1)*dz),label="",color=:black)
+   plot!(ones(2)*((nr-LPML_r+1)*dr),[0;(nz-1)*dz],label="",color=:black)
 
+   plt2=heatmap(rvec,zvec,Data2,yflip=true,xlabel="R (m)",ylabel="Z (m)",ylims=(50,60),legend=:none)
+   heatmap!(title=title_str2)
+   plot!([0;R],ones(2)*(LPML_z-1)*dz,label="",color=:black)
+   plot!([0;R],ones(2)*((nz-LPML_z+1)*dz),label="",color=:black)
+   plot!(ones(2)*((nr-LPML_r+1)*dr),[0;(nz-1)*dz],label="",color=:black)
+
+   plt3=heatmap(rvec,zvec,Data3,yflip=true,xlabel="R (m)",ylabel="Z (m)",ylims=(50,60),legend=:none)
+   heatmap!(title=title_str3)
+   plot!([0;R],ones(2)*(LPML_z-1)*dz,label="",color=:black)
+   plot!([0;R],ones(2)*((nz-LPML_z+1)*dz),label="",color=:black)
+   plot!(ones(2)*((nr-LPML_r+1)*dr),[0;(nz-1)*dz],label="",color=:black)
+
+   plt4=heatmap(rvec,zvec,Data4,yflip=true,xlabel="R (m)",ylabel="Z (m)",ylims=(50,60),legend=:none)
+   heatmap!(title=title_str4)
+   plot!([0;R],ones(2)*(LPML_z-1)*dz,label="",color=:black)
+   plot!([0;R],ones(2)*((nz-LPML_z+1)*dz),label="",color=:black)
+   plot!(ones(2)*((nr-LPML_r+1)*dr),[0;(nz-1)*dz],label="",color=:black)
+
+   display(plot(plt1,plt2,plt3,plt4,layout=(2,2)))
+
+end
+
+#==========================================
+Creating a model for a borehole embedded in
+ a poroelastic three-layer medium
+==========================================#
 function makemodel_3L()
    #Necessary input matrices to the main loop function are:
    #Rho: Bulk density
@@ -109,28 +146,15 @@ function makemodel_3L()
     Background poroelastic medium
    ==============================#
    Phi[:,:]=ones(nz,nr)*0.3
-   #--Tortuosity factor from Sidler
+   #Tortuosity factor from Sidler
    #Tot=0.5*(ones(nz,nr)+1 ./Phi) #Empirical formula (see Sidler)
-   #--Tortuosity factor from Ou
+   #Tortuosity factor from Ou
    m_Ou=8.0 #
    alpha_inf_Ou=3.0 #tortuosity
    Tot=ones(nz,nr)*(1+2/m_Ou)*alpha_inf_Ou
 
-   #-Solid parameters from dry_Vp,dry_Vs,grain_density, and grain_bulkmodulus (Table 1 of Ou2019)
-   #
-   #== -Frame 1: Vpsat=4000,Vssat=2000,RhoB=2500
-   Vp_dry=4165.0
-   Vs_dry=2135.0
-   Rhos[:,:]=ones(nz,nr)*3143.0
-   Ks[:,:]=ones(nz,nr)*5*1E10
-   ==#
-   #== -Frame 2: Vpsat=5011,Vssat=3002,RhoB=2500
-   Vp_dry=5200.0
-   Vs_dry=3200.0
-   Rhos[:,:]=ones(nz,nr)*3143.0
-   Ks[:,:]=ones(nz,nr)*9*1E10
-   ==#
-   # -Frame 2B: Vpsat=5000,Vssat=3000,RhoB=2500
+   #-Solid parameters from dry_Vp, dry_Vs, grain density, and grain bulk modulus
+   #Parameters giving sat_Vp=5000, sat_Vs=3000, bulk density=2500
    Vp_dry=5170.0
    Vs_dry=3198.0
    Rhos[:,:]=ones(nz,nr)*3143.0
@@ -168,23 +192,14 @@ function makemodel_3L()
    Elastic Layers
    ==========================#
    #3Layer model (Elastic-PoroElastic-Elastic)
-   #boundary @iz=271, L~1m or k=5samples?
-   #==
-   # background 1
-   Vp_elastic=4000.0 #Or, Specify K_elastic
-#   K_elastic=1.12*1E10 #Or, Specify Vp_elastic
-   Vs_elastic=2000.0
-   Rho_elastic=2500.0
-   ==#
-
-   # background 2
+   #boundary @iz=271, L~1m or k=5 samples
+   #
    Flag_E=zeros(nz,nr)
    Vp_elastic=5000.0 #Or, Specify K_elastic
    Vs_elastic=3000.0
    Rho_elastic=2500.0
    #
 
-#
    for iz=1:270 #Upper Elastic medium
 
        G_elastic=Vs_elastic^2*Rho_elastic
@@ -254,62 +269,8 @@ end
 
 
 
-function drawmodel_tmp(Data1,Data2,nz,dz,nr,dr,src_index,index_allrec_tii,nrec,LPML_r,LPML_z)
-   println("Model drawing...")
-   zvec=[0:dz:(nz-1)*dz]
-   rvec=[0:dr:(nr-1)*dr]
-   R=(nr-1)*dr
-#   plt1=heatmap(rvec,zvec,Vp,yflip=true,xlabel="R (m)",ylabel="Z (m)",ratio=1)
-   plt1=heatmap(rvec,zvec,Data1,yflip=true,xlabel="R (m)",ylabel="Z (m)",legend=:none)
-#   plot!([(src_index[2]-1)*dr],[(src_index[1]-1)*dz],label="",markershape=:circle,markersize=5,markerstrokewidth=0,seriescolor=:red)
-#   plot!((index_allrec_tii[:,2]-ones(nrec))*dr,(index_allrec_tii[:,1]-ones(nrec))*dz,label="",markershape=:cross,markersize=5,markerstrokewidth=0,seriescolor=:red)
-   plot!([0;R],ones(2)*(LPML_z-1)*dz,label="",color=:black)
-   plot!([0;R],ones(2)*((nz-LPML_z+1)*dz),label="",color=:black)
-   plot!(ones(2)*((nr-LPML_r+1)*dr),[0;(nz-1)*dz],label="",color=:black)
-   plt2=heatmap(rvec,zvec,Data2,yflip=true,xlabel="R (m)",ylabel="Z (m)",ylims=(50,60),legend=:none)
-#   plot!([(src_index[2]-1)*dr],[(src_index[1]-1)*dz],label="",markershape=:circle,markersize=5,markerstrokewidth=0,seriescolor=:red)
-#   plot!((index_allrec_tii[:,2]-ones(nrec))*dr,(index_allrec_tii[:,1]-ones(nrec))*dz,label="",markershape=:cross,markersize=5,markerstrokewidth=0,seriescolor=:red)
-   plot!([0;R],ones(2)*(LPML_z-1)*dz,label="",color=:black)
-   plot!([0;R],ones(2)*((nz-LPML_z+1)*dz),label="",color=:black)
-   plot!(ones(2)*((nr-LPML_r+1)*dr),[0;(nz-1)*dz],label="",color=:black)
 
-
-   display(plot(plt1,plt2,layout=(1,2)))
-
-end
-
-function drawmodel_tmp2(Data1,Data2,Data3,Data4,nz,dz,nr,dr,src_index,index_allrec_tii,nrec,LPML_r,LPML_z)
-   println("Model drawing...")
-   zvec=[0:dz:(nz-1)*dz]
-   rvec=[0:dr:(nr-1)*dr]
-   R=(nr-1)*dr
-#   plt1=heatmap(rvec,zvec,Vp,yflip=true,xlabel="R (m)",ylabel="Z (m)",ratio=1)
-   plt1=heatmap(rvec,zvec,Data1,yflip=true,xlabel="R (m)",ylabel="Z (m)",legend=:none)
-   plot!([0;R],ones(2)*(LPML_z-1)*dz,label="",color=:black)
-   plot!([0;R],ones(2)*((nz-LPML_z+1)*dz),label="",color=:black)
-   plot!(ones(2)*((nr-LPML_r+1)*dr),[0;(nz-1)*dz],label="",color=:black)
-
-   plt2=heatmap(rvec,zvec,Data2,yflip=true,xlabel="R (m)",ylabel="Z (m)",ylims=(50,60),legend=:none)
-   plot!([0;R],ones(2)*(LPML_z-1)*dz,label="",color=:black)
-   plot!([0;R],ones(2)*((nz-LPML_z+1)*dz),label="",color=:black)
-   plot!(ones(2)*((nr-LPML_r+1)*dr),[0;(nz-1)*dz],label="",color=:black)
-
-   plt3=heatmap(rvec,zvec,Data3,yflip=true,xlabel="R (m)",ylabel="Z (m)",ylims=(50,60),legend=:none)
-   plot!([0;R],ones(2)*(LPML_z-1)*dz,label="",color=:black)
-   plot!([0;R],ones(2)*((nz-LPML_z+1)*dz),label="",color=:black)
-   plot!(ones(2)*((nr-LPML_r+1)*dr),[0;(nz-1)*dz],label="",color=:black)
-
-   plt4=heatmap(rvec,zvec,Data4,yflip=true,xlabel="R (m)",ylabel="Z (m)",ylims=(50,60),legend=:none)
-   plot!([0;R],ones(2)*(LPML_z-1)*dz,label="",color=:black)
-   plot!([0;R],ones(2)*((nz-LPML_z+1)*dz),label="",color=:black)
-   plot!(ones(2)*((nr-LPML_r+1)*dr),[0;(nz-1)*dz],label="",color=:black)
-
-   display(plot(plt1,plt2,plt3,plt4,layout=(2,2)))
-
-end
-
-
-#---function to create receiver geometry for plane wave experiment ()temporary
+#---function to create receiver geometry for a plane wave (VSP) experiment
 function make_receivers()
    #-------------------------
    #  Receiver positions
@@ -434,14 +395,11 @@ function main_loop!(nr,nz,dr,dz,Rho,Rhof,M,C,H,G,D1,D2,dt,nt,T,
    nrec,index_allrec_vr,index_allrec_vz,index_allrec_tii,rec_vr,rec_vz,rec_tii,
    nrec_PE,index_allrec_vfr_PE,index_allrec_pf_PE,rec_vfr_PE,rec_pf_PE,rec_tii_PE,
    LPML_r,LPML_z,PML_Wr,PML_Wz,PML_IWr,PML_Wr2,PML_Wz2,PML_IWr2,
-   snapshots_vr,snapshots_vz,snapshots_trr,nsnap,itvec_snap,nskip)
+   snapshots_vr,snapshots_vz,snapshots_pf,nsnap,itvec_snap,nskip)
 
 #println("start")
 
-#--
 Flag_vf_zero=get_Flag_vf_zero(Flag_AC,Flag_E,nr,nz)
-divV=zeros(nz,nr)
-curV=zeros(nz,nr)
 
 #initializing matrices of PML
 Prz_T,Pzz_T,Rz_T,Srz_T,PzzPE_T,RzPE_T,
@@ -457,7 +415,7 @@ memR_vr,memR_vz,memR_trr,memR_tpp,memR_tzz,memR_trz,memR_vfr,memR_vfz,memR_pf=
 init_memory_variables_Por(LPML_r,LPML_z,nr,nz)
 #return
 
-#required for BC
+#initializing following matrices (required for BC at the borehole wall)
 vr_old=zeros(nz,nr)
 vz_old=zeros(nz,nr)
 vfr_old=zeros(nz,nr)
@@ -471,10 +429,7 @@ ApplyBCRight_stress!(vr,vz, #Use with flag_zero=1 (see ApplyBCRight_stress1D01)
     trz,
     G,nr,nz,dr,dz,dt)
 
-#error()
 @showprogress for ii=1:nt
-#@showprogress for ii=1:1001
-
 
 #----Time at (ii-1)*dt---(updating velocities)-----
 
@@ -494,7 +449,6 @@ mycopy_mat(vfz,vfz_old,nz,nr)
 # Main velocity update!
 update_velocity_1st_Por!(vr,vz,trr,tpp,tzz,trz,vfr,vfz,pf,Rho,Rhof,D1,D2,Flag_vf_zero,nr,nz,dr,dz,dt,LPML_z,LPML_r)
 
-#error()
 
 #PML: update velocity
 PML_update_vel!(vr,vz,trr,tpp,tzz,trz,vfr,vfz,pf,
@@ -583,13 +537,11 @@ ApplyBCRight_stress!(vr,vz, #Use with flag_zero=1 (see ApplyBCRight_stress1D01)
 
 #---stress B.Cs
 #println("update stress Left")
-#ApplyBCLeft_stress_2nd!(vr,vphi,vz,trr,tpp,tzz,trp,trz,tpz,lmat,mmat,m,nr,nz,dr,dz)
 ApplyBCLeft_stress!(vr,vz,trr,tpp,tzz,trz,vfr,vfz,pf,
                     M,C,H,G,nr,nz,dr,dz,dt,
                     Rz_T,Srz_T,RzPE_T,
                     Rz_B,Srz_B,RzPE_B,
                     LPML_z)
-#return
 
 #--src injection (stress:monopole/dipole src)
 #srcamp=-src_func[ii]
@@ -637,23 +589,14 @@ check_snap=findall(x -> x==ii,itvec_snap)
 if (length(check_snap)!=0)
    println("ii=",ii)
    cnt_snap=Int(check_snap[1])
-   get_snapshots!(snapshots_vr,snapshots_vz,cnt_snap,vfr,vz,nr,nz)
-   get_snapshots_t!(snapshots_trr,cnt_snap,pf,nr,nz)
-#   display(heatmap(snapshots_vz[1:5:end,1:5:end,cnt_snap]))
-#   display(heatmap(snapshots_vr[100:150,1:20,cnt_snap]))
+   get_snapshots!(snapshots_vz,cnt_snap,vz,nr,nz)
+   get_snapshots!(snapshots_vr,cnt_snap,vr,nr,nz)
+   get_snapshots!(snapshots_pf,cnt_snap,pf,nr,nz)
 
-#   display(heatmap(snapshots_trr[:,:,cnt_snap]))
-
-#   drawmodel02(snapshots_vz[:,:,cnt_snap],nz,dz,nr,dr,
-#            src_index,index_allrec_tii,nrec,LPML_r,LPML_z)
-
-#   drawmodel02(snapshots_trr[:,:,cnt_snap],nz,dz,nr,dr,
-#            src_index,index_allrec_tii,nrec,LPML_r,LPML_z)
-
-#   drawmodel_tmp(snapshots_vz[:,:,cnt_snap],snapshots_trr[:,:,cnt_snap],nz,dz,nr,dr,
-#            src_index,index_allrec_tii,nrec,LPML_r,LPML_z)
-   drawmodel_tmp2(snapshots_vz[:,:,cnt_snap],snapshots_trr[:,:,cnt_snap],snapshots_vr[:,:,cnt_snap],snapshots_vz[:,:,cnt_snap],nz,dz,nr,dr,
-            src_index,index_allrec_tii,nrec,LPML_r,LPML_z)
+   drawsnap_2by2(snapshots_vz[:,:,cnt_snap],snapshots_pf[:,:,cnt_snap],
+                 snapshots_vr[:,:,cnt_snap],snapshots_vz[:,:,cnt_snap],nz,dz,nr,dr,
+                 src_index,index_allrec_tii,nrec,LPML_r,LPML_z,
+                 "Vz","Pf","Vr","Vz")
 
 end
 
@@ -695,7 +638,7 @@ check_stability01(dt,dr,Vmax,0)
 check_stability01(dt,dz,Vmax,0)
 
 #======================
-Creating src wavelet
+Creating a src wavelet
 ======================#
 f0=200 #src Freq
 delay=1/f0*1.0
@@ -713,13 +656,13 @@ png(tmpfilename_src)
 println("Source signature figure saved in ",tmpfilename_src)
 
 #================================
-Src depth where an initial plane P wave
+Src depth where a plane P wave
 starts to propagate downward
 ================================#
 srcdepth=28. #meter
 
 #==============================
-Initializig field variables
+Initializing field variables
 ==============================#
 # Initial conditions of a plane P wave
 vr,vz,trr,tpp,tzz,trz,
@@ -756,8 +699,11 @@ drawmodel(vz_init,nz,dz,nr,dr,src_index,index_allrec_tii,nrec,LPML_r,LPML_z)
 #==============================
 Snapshot settings
 ==============================#
-nskip,snapshots_trr,snapshots_vr,snapshots_vz,
-nsnap,itvec_snap=init_snap(nt,nz,nr,100)
+nskip=100 #change here to adjust time sampling (1~nt)
+snapshots_vz,nsnap,itvec_snap=init_snapshots(nt,nz,nr,nskip)
+snapshots_vr,nsnap,itvec_snap=init_snapshots(nt,nz,nr,nskip)
+snapshots_pf,nsnap,itvec_snap=init_snapshots(nt,nz,nr,nskip)
+
 #error()
 
 #==============================
@@ -772,63 +718,29 @@ main_loop!(nr,nz,dr,dz,Rho,Rhof,M,C,H,G,D1,D2,dt,nt,T,
    nrec,index_allrec_vr,index_allrec_vz,index_allrec_tii,rec_vr,rec_vz,rec_tii,
    nrec_PE,index_allrec_vfr_PE,index_allrec_pf_PE,rec_vfr_PE,rec_pf_PE,rec_tii_PE,
    LPML_r,LPML_z,PML_Wr,PML_Wz,PML_IWr,PML_Wr2,PML_Wz2,PML_IWr2,
-   snapshots_vr,snapshots_vz,snapshots_trr,nsnap,itvec_snap,nskip)
+   snapshots_vr,snapshots_vz,snapshots_pf,nsnap,itvec_snap,nskip)
 
 
 
 CPUtoc()
 println("elapsed real time: ", round(time() - start;digits=3)," seconds")
 
-error("Stopped w/o problem.")
 
+println("FD finished without a problem.")
 
+println("Plotting receiver responses...")
+FD_z0=272*dz #the reference depth of the porous layer
+recdepth=(float(index_allrec_tii[1:nz,1])-ones(nz,1))*dz #receiver depth
 
-   println("Model drawing...")
-   zvec=[0:dz:(nz-1)*dz]
-   rvec=[0:dr:(nr-1)*dr]
-   R=(nr-1)*dr
-   plt1=heatmap(rvec,zvec,vz,yflip=true,xlabel="R (m)",ylabel="Z (m)",ratio=1)
-   plot!([(src_index[2]-1)*dr],[(src_index[1]-1)*dz],label="",markershape=:circle,markersize=5,markerstrokewidth=0,seriescolor=:red)
-   plot!((index_allrec_tii[:,2]-ones(nrec))*dr,(index_allrec_tii[:,1]-ones(nrec))*dz,label="",markershape=:cross,markersize=5,markerstrokewidth=0,seriescolor=:red)
-   plot!([0;R],ones(2)*(LPML_z-1)*dz,label="",color=:black)
-   plot!([0;R],ones(2)*((nz-LPML_z+1)*dz),label="",color=:black)
-   plot!(ones(2)*((nr-LPML_r+1)*dr),[0;(nz-1)*dz],label="",color=:black)
-   display(plot(plt1))
+offset=recdepth-FD_z0*ones(size(recdepth))
+plt1=heatmap(offset[:],tvec[1:10:end],-rec_tii[1:10:end,1:nz],xlabel="Depth (m)",ylabel="time (s)",title="pressure")
+heatmap!(yflip=true)
+display(plot(plt1))
+plt2=plot(tvec[:],-rec_tii[:,223],xlabel="Depth (m)",ylabel="time (s)",title="-10.0m",label="",ylims=(-0.03,0.03))
+plt3=plot(tvec[:],-rec_tii[:,323],xlabel="Depth (m)",ylabel="time (s)",title="+10.0m",label="",ylims=(-0.03,0.03))
+display(plot(plt2,plt3,layout=(2,1)))
 
-
-
-tmp_filename="out.jld"
-tmp_filename_full=string(@__DIR__,"/",tmp_filename)
-save(tmp_filename_full,
-"tvec",tvec,"nr",nr,"nz",nz,"dr",dr,"dz",dz,"m",m,"dt",dt,"nt",nt,"T",T,"rec_tii",rec_tii,"src_func",src_func,
-"index_allrec_tii",index_allrec_tii,"src_index",src_index,"snapshots_trr",snapshots_trr,
-"itvec_snap",itvec_snap)
-
-
-#tmp_filename="out_reference_back2.mat"
-tmp_filename="out_frame2B_back2_thick.mat"
-
-iskip_rec=10
-tvec_rec=tvec[1:iskip_rec:end]
-
-tmp_filename_full=string(@__DIR__,"/",tmp_filename)
-matwrite(tmp_filename_full, Dict(
-"tvec"=>tvec,"nr"=>nr,"nz"=>nz,"dr"=>dr,"dz"=>dz,
-"dt"=>dt,"nt"=>nt,"T"=>T,
-"tvec_rec"=>tvec_rec,
-"rec_tii"=>rec_tii[1:iskip_rec:end,:],
-"rec_vz"=>rec_vz[1:iskip_rec:end,:],
-#"rec_vr"=>rec_vr,
-"rec_tii_PE"=>rec_tii_PE[1:iskip_rec:end,:],
-"rec_pf_PE"=>rec_pf_PE[1:iskip_rec:end,:],
-"src_func"=>src_func,
-"index_allrec_tii"=>index_allrec_tii,
-"index_allrec_vz"=>index_allrec_vz,
-"index_allrec_vr"=>index_allrec_vr,
-"index_allrec_pf_PE"=>index_allrec_pf_PE,
-"src_index"=>src_index,
-#"snapshots_trr"=>snapshots_trr,
-"snapshots_pf"=>snapshots_trr,
-#"snapshots_vr"=>snapshots_vr,
-"snapshots_vz"=>snapshots_vz,
-"itvec_snap"=>itvec_snap); compress = true)
+rvec=range(0.0,(nr-1)*dr,length=nr) # range object (no memory allocation)
+rvec=collect(rvec) # a vector
+plt4=plot(rvec[:],rec_pf_PE[4001,:],xlabel="r (m)",ylabel="pressure (Pa)",title="t=0.005 s",label="Pf",ylims=(-0.08,-0.06))
+plot!(rvec[:],-rec_tii_PE[4001,:],xlabel="r (m)",ylabel="pressure (Pa)",title="t=0.005 s",label="-tii/3",ylims=(-0.08,-0.06))

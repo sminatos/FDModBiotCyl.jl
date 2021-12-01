@@ -479,7 +479,7 @@ src_index,src_dn=get_srcindex_pGauss(srcgeom,dr,dz,wsize,wsigma)
 
 #error()
 #==============================
-Initializig field variables
+Initializing field variables
 ==============================#
 vr,vz,trr,tpp,tzz,trz,vfr,vfz,pf=init_fields_Por(nz,nr) #
 
