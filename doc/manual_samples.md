@@ -6,8 +6,8 @@ The sample files in `/samples` contain several sample codes for FDTD simulation.
 
 1. Setting `dt`, `T`, and PML thicknesses (`LPML_r` and `LPML_z`)
 2. Creating a model (material parameter distribution)
-  - See `Material parameters` below for the necessary material parameters.
-  - Look at an example function, e.g., `makemodel_homogeneous_Elastic` in [./examples/homogeneous_Elastic.jl](examples/homogenous_Elastic.jl) for more details.
+  - See [Material parameters](#material-parameters) below for the necessary material parameters.
+  - Look at an example function, e.g., `makemodel_homogeneous_Elastic` in [/examples/homogeneous_Elastic.jl](/examples/homogenous_Elastic.jl) for more details.
 3. Creating a source wavelet
   - `src_func`
 4. Defining a source location and its amplitude scaling factor
@@ -23,9 +23,9 @@ The sample files in `/samples` contain several sample codes for FDTD simulation.
 Following parameters are matrices of the size `(nz, nr)`.
  - `Rho` : Bulk density
  - `Rhof` : Fluid density
- - `H`, `C`, `M` : Poroelastic moduli
+ - `H`, `C`, `M` : Poroelastic moduli (see, e.g., [Sidler et al., 2014](#references))
  - `G` : Shear modulus
- - `D1`, `D2` : Material parameters relevant to fluid flow properties (see Ou and Wang, 2019)
+ - `D1`, `D2` : Material parameters relevant to fluid flow properties (see, e.g., [Guan and Hu, 2011](#references))
  - `Flag_AC`, `Flag_E` : These flags are used to indicate an acoustic medium or an elastic medium at each FD cell.
 
 ## Field variables
