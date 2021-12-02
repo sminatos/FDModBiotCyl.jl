@@ -12,9 +12,7 @@ using FDModBiotCyl
 using CPUTime
 using ProgressMeter
 using Plots
-using DelimitedFiles
 using Printf
-using Dierckx
 
 #--Suppressing graphics
 #ENV["GKSwstype"]="nul"

@@ -1,13 +1,13 @@
-# Manual  
+# Manual (/samples)
 This manual explains sample files in `/samples`. They solve Biot poroelastic equations using the finite-difference method in the cylindrical coordinate system with azimuthal symmetry. The solid phase assumes isotropic elasticity. Please note that the sample files will use additional packages for visualization.
 
 ## Structure of the sample files
-The sample files in `/samples` directory contain several sample codes for FDTD simulation. They all have the following structure. You can change values according to your simulation configuration.
+The sample files in `/samples` contain several sample codes for FDTD simulation. They all have the following structure. You can change values according to your simulation configuration.
 
 1. Setting `dt`, `T`, and PML thicknesses (`LPML_r` and `LPML_z`)
 2. Creating a model (material parameter distribution)
   - See `Material parameters` below for the necessary material parameters.
-  - Look at an example function, e.g., `makemodel_homogeneous_Elastic` for more details.
+  - Look at an example function, e.g., `makemodel_homogeneous_Elastic` in [./examples/homogeneous_Elastic.jl](examples/homogenous_Elastic.jl) for more details.
 3. Creating a source wavelet
   - `src_func`
 4. Defining a source location and its amplitude scaling factor
@@ -17,10 +17,10 @@ The sample files in `/samples` directory contain several sample codes for FDTD s
 7. Defining a receiver geometry
 8. Setting snapshots parameters by `init_snap`
 9. Running the FD main loop `main_loop!`
-  - See `FD Main Loop` below for more details.
+  - See [FD Main Loop](#fd-main-loop) below for more details.
 
 ## Material parameters
-Following parameters are matrices of the size `(nz,nr)`.
+Following parameters are matrices of the size `(nz, nr)`.
  - `Rho` : Bulk density
  - `Rhof` : Fluid density
  - `H`, `C`, `M` : Poroelastic moduli
@@ -29,7 +29,7 @@ Following parameters are matrices of the size `(nz,nr)`.
  - `Flag_AC`, `Flag_E` : These flags are used to indicate an acoustic medium or an elastic medium at each FD cell.
 
 ## Field variables
-Following parameters are matrices of the size `(nz,nr)`.
+Following parameters are matrices of the size `(nz, nr)`.
 - `vr`, `vz` : solid-phase particle velocities.
 - `trr`, `tzz`, `tpp`, `trz` : solid-phase stress
 - `pf`, `vfr`, `vfz` : fluid pressure and fluid relative velocities.
@@ -44,7 +44,7 @@ Following parameters are matrices of the size `(nz,nr)`.
 - The field parameters located at `z=0` are `tzz`, `trr`, `tpp`, `pf`, `vr`, and `vfr`.
 
 ## FD Main Loop
-The function `main_loop!` in the sample files in `/samples` calculates FD using given material parameters. It then populates a receiver response matrix (e.g., `rec_vz`). It may require modifying the main loop according to a source type (e.g., body force in `z` or `r` direction) and a receiver type (e.g., `pf` or `vz`), which is desired in your simulation. The calculation sequence in the loop is as follows.
+The function `main_loop!` in the sample files in `/samples` calculates FD using given material parameters. It then populates a receiver response matrix (e.g., `rec_vz`). It may require modifying the main loop according to a source type (e.g., body force in `z` or `r` direction) and a receiver type (e.g., `pf` or `vz`) desired in your simulation. The calculation sequence in the loop is as follows.
 1. Updating velocity field (main computation region and PML region)
 2. Applying boundary conditions at the left (`r=0`) and the right (`r=R`) boundaries for the velocity field
 3. Injecting source at the velocity field (optional)
@@ -54,7 +54,7 @@ The function `main_loop!` in the sample files in `/samples` calculates FD using 
 7. Saving field variables at receiver locations (optional)
 8. Saving field variables for snapshots (optional)
 
-At an acoustic domain (`Flag_AC`) and an elastic domain (`Flag_E`), it does not evaluate `vfr` and `vfz` and they are zeros. When the entire modeling domain is a poroelastic formation, use `Flag_AC=zeros(nz,nr)` and `Flag_E=zeros(nz,nr)`. When the entire modeling domain is an elastic formation, use `Flag_AC=zeros(nz,nr)` and `Flag_E=ones(nz,nr)`. When the modeling domain contains a combination of acoustic, elastic, and poroelastic formations, it requires adding boundary conditions at an interface between different domains. The last scenario is important in modeling a wavefield in a borehole. Look at `/samples_borehole` for more details.
+At an acoustic domain (`Flag_AC`) and an elastic domain (`Flag_E`), it does not evaluate `vfr` and `vfz`, which are zeros. When the entire modeling domain is a poroelastic formation, use `Flag_AC=zeros(nz,nr)` and `Flag_E=zeros(nz,nr)`. When the entire modeling domain is an elastic formation, use `Flag_AC=zeros(nz,nr)` and `Flag_E=ones(nz,nr)`.
 
 ## References
 - Randall et al. (1991), Geophysics, 56, 1757-1769
