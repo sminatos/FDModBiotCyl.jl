@@ -1,4 +1,4 @@
-# Manual for /samples_borehole
+# Manual (/samples_borehole)
 This manual explains sample files in `/samples_borehole`. They solve Biot poroelastic equations using the finite-difference method in the cylindrical coordinate system with azimuthal symmetry. The solid phase assumes isotropic elasticity. Please note that the sample files will use additional packages for visualization.
 
 ## Structure of the sample files
@@ -7,7 +7,7 @@ The sample files in `/samples_borehole` contain several sample codes for FDTD si
 1. Setting `dt`, `T`, and PML thicknesses (`LPML_r` and `LPML_z`)
 2. Creating a model (material parameter distribution)
   - See [Material parameters](#material-parameters) below for the necessary material parameters.
-  - Look at an example function, for example, `makemodel_homogeneous_Elastic` in [/examples_borehole/acoustic_logging_Elastic_1L.jl](/examples_borehole/acoustic_logging_Elastic_1L.jl) for more details.
+  - Look at an example function, for example, `makemodel_homogeneous_Elastic` in [/samples_borehole/acoustic_logging_Elastic_1L.jl](/samples_borehole/acoustic_logging_Elastic_1L.jl) for more details.
 3. Creating a source wavelet
   - `src_func`
 4. Defining a source location and its amplitude scaling factor. Depending on acoustic logging (a point source) or VSP (a plane P wave incidence), there are different parameters
@@ -47,7 +47,7 @@ Following parameters are matrices of the size `(nz, nr)`, where `nr` is the numb
 - The field parameters located at `z=0` are `tzz`, `trr`, `tpp`, `pf`, `vr`, and `vfr`.
 
 ## FD Main Loop
-The function `main_loop!` in the sample files in `/samples_borehole` calculates FD using given material parameters. It then populates a receiver response matrix (e.g., `rec_vz`). It may require modifying the main loop according to a source type (e.g., body force in `z` or `r` direction) and a receiver type (e.g., `pf` or `vz`) desired in your simulation. The calculation sequence in the loop is as follows. Additional complexities compared to `main_loop!` in the sample files in `/samples` (see manual) are due to the presence of acoustic, elastic, and poroelastic domains.
+The function `main_loop!` in the sample files in `/samples_borehole` calculates FD using given material parameters. It then populates a receiver response matrix (e.g., `rec_vz`). It may require modifying the main loop according to a source type (e.g., body force in `z` or `r` direction) and a receiver type (e.g., `pf` or `vz`) desired in your simulation. The calculation sequence in the loop is as follows. Additional complexities compared to `main_loop!` in the sample files in `/samples` (see [manual for /samples](/doc/manual_samples.md)) are due to the presence of acoustic, elastic, and poroelastic domains.
 1. Updating velocity field (main computation region and PML region)
 2. Applying boundary conditions at the left (`r=0`) and the right (`r=R`) boundaries for the velocity field
   - [when Acoustic-Poroelastic-Elastic coupled media] Applying the boundary condition at the borehole wall (open-pore condition at the acoustic-poroelastic boundary). Only a vertical borehole wall is supported.  
@@ -59,7 +59,7 @@ The function `main_loop!` in the sample files in `/samples_borehole` calculates 
 8. Saving field variables at receiver locations (optional)
 9. Saving field variables for snapshots (optional)
 
-At an acoustic domain (`Flag_AC`) and an elastic domain (`Flag_E`), it does not evaluate `vfr` and `vfz`, which are zeros. Please look at `makemodel_3L` in [/examples_borehole/VSP_PoroElastic_3L.jl](/examples_borehole/VSP_PoroElastic_3L.jl) for how to correctly assign these parameters.
+At an acoustic domain (`Flag_AC`) and an elastic domain (`Flag_E`), it does not evaluate `vfr` and `vfz`, which are zeros. Please look at `makemodel_3L` in [/samples_borehole/VSP_PoroElastic_3L.jl](/samples_borehole/VSP_PoroElastic_3L.jl) for how to correctly assign these parameters.
 
 ## References
 - Randall et al. (1991), Geophysics, 56, 1757-1769

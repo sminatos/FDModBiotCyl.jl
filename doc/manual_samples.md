@@ -7,7 +7,7 @@ The sample files in `/samples` contain several sample codes for FDTD simulation.
 1. Setting `dt`, `T`, and PML thicknesses (`LPML_r` and `LPML_z`)
 2. Creating a model (material parameter distribution)
   - See [Material parameters](#material-parameters) below for the necessary material parameters.
-  - Look at an example function, e.g., `makemodel_homogeneous_Elastic` in [/examples/homogeneous_Elastic.jl](/examples/homogenous_Elastic.jl) for more details.
+  - Look at an example function, e.g., `makemodel_homogeneous_Elastic` in [/samples/homogeneous_Elastic.jl](/samples/homogeneous_Elastic.jl) for more details.
 3. Creating a source wavelet
   - `src_func`
 4. Defining a source location and its amplitude scaling factor
@@ -20,7 +20,7 @@ The sample files in `/samples` contain several sample codes for FDTD simulation.
   - See [FD Main Loop](#fd-main-loop) below for more details.
 
 ## Material parameters
-Following parameters are matrices of the size `(nz, nr)`.
+Following parameters are matrices of the size `(nz, nr)`, where `nr` is the number of grid points in a radial direction `r`, and `nz` is that in a vertical direction `z`.
  - `Rho` : Bulk density
  - `Rhof` : Fluid density
  - `H`, `C`, `M` : Poroelastic moduli (see, e.g., [Sidler et al., 2014](#references))

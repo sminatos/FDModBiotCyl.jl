@@ -33,7 +33,7 @@ julia> Pkg.test()
 If the test successfully passes, it is good to go.
 
 ## Quick Start
-A sample code for simulation of a simple medium is available in [/examples/homogeneous_Elastic.jl](/examples/homogeneous_Elastic.jl). The code requires additional packages for plotting outputs. If your system does not have them:
+A sample code for simulation of a simple medium is available in [/samples/homogeneous_Elastic.jl](/samples/homogeneous_Elastic.jl). The code requires additional packages for plotting outputs. If your system does not have them:
 ```julia
 julia> using Pkg
 julia> Pkg.add("Plots")
@@ -46,15 +46,15 @@ To run the code,
 julia> include("./samples/homogeneous_Elastic.jl")
 ```
 
-You can change medium properties and a source-receiver geometry by modifying the code. See [manual for /samples](/doc/manual.md) for more details.
+You can change medium properties and a source-receiver geometry by modifying the code. See [manual for /samples](/doc/manual_samples.md) for more details.
 
 ## Examples
 
-In `./samples` several examples for a simple medium are available ([manual for /samples](/doc/manual.md)). In `./samples_borehole` several examples for a rather complex borehole model are available ([manual for /samples_borehole](/doc/manual_samples_borehole.md)).
+In `./samples` several examples for a simple medium are available ([manual for /samples](/doc/manual_samples.md)). In `./samples_borehole` several examples for a rather complex borehole model are available ([manual for /samples_borehole](/doc/manual_samples_borehole.md)).
 
-- [/examples/homogeneous_Elastic.jl](/examples/homogeneous_Elastic.jl) simulates elastic wavefield in a homogeneous medium due to a point source.
+- [/samples/homogeneous_Elastic.jl](/samples/homogeneous_Elastic.jl) simulates elastic wavefield in a homogeneous medium due to a point source.
 
-- [/examples/homogeneous_PoroElastic.jl](/examples/homogeneous_PoroElastic.jl) simulates poroelastic wavefield in a homogeneous medium due to a point source.
+- [/samples/homogeneous_PoroElastic.jl](/samples/homogeneous_PoroElastic.jl) simulates poroelastic wavefield in a homogeneous medium due to a point source.
 
 - [/samples_borehole/acoustic_logging.jl](/samples_borehole/acoustic_logging.jl) simulates pressure response in a water-filled borehole. The borehole is embedded in a homogeneous elastic medium, and a point source is located in the borehole water (monopole-source acoustic logging).
 
