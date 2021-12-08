@@ -1,7 +1,7 @@
 # /samples_borehole
 This file explains sample files in `/samples_borehole`. They solve Biot poroelastic equations using the finite-difference method in the cylindrical coordinate system with azimuthal symmetry. The solid phase assumes isotropic elasticity. Please note that the sample files will use additional packages for visualization.
 
-- [/samples_borehole/acoustic_logging.jl](/samples_borehole/acoustic_logging.jl) simulates pressure response in a water-filled borehole. The borehole is embedded in a homogeneous elastic medium, and a point source is located in the borehole water (monopole-source acoustic logging).
+- [/samples_borehole/acoustic_logging_Elastic_1L.jl](/samples_borehole/acoustic_logging_Elastic_1L.jl) simulates pressure response in a water-filled borehole. The borehole is embedded in a homogeneous elastic medium, and a point source is located in the borehole water (monopole-source acoustic logging).
 
 - [/samples_borehole/VSP_Elastic_2L.jl](/samples_borehole/VSP_Elastic_2L.jl) simulates pressure response in a water-filled borehole. The borehole is embedded in a layered elastic medium, and a plane P wave incident on the borehole from above (zero-offset vertical seismic profiling).
 
@@ -11,17 +11,16 @@ This file explains sample files in `/samples_borehole`. They solve Biot poroelas
 The sample files have the following structure. You can change values according to your simulation configuration.
 
 1. Setting `dt`, `T`, and PML thicknesses (`LPML_r` and `LPML_z`)
-2. Creating a model (material parameter distribution)
+2. Creating a model (material parameter distribution):
   - See [Material parameters](#material-parameters) below for the necessary material parameters.
   - Look at an example function, for example, `makemodel_homogeneous_Elastic` in [/samples_borehole/acoustic_logging_Elastic_1L.jl](/samples_borehole/acoustic_logging_Elastic_1L.jl) for more details.
-3. Creating a source wavelet
-  - `src_func`
-4. Defining a source location and its amplitude scaling factor. Depending on acoustic logging (a point source) or VSP (a plane P wave incidence), there are different parameters
+3. Creating a source wavelet `src_func`
+4. Defining a source location and its amplitude-scaling factor. They depend on acoustic logging (a point source) or VSP (a plane P wave incidence):
   - [A point source simulation] `src_index` and `src_dn`
   - [A plane P wave incidence] `src_depth`
-5. Initializing field variables
+5. Initializing field variables:
   - [A point source simulation] `init_fields_Por`
-  - [A plane P wave incidence] `initialize_planewave` assigns field variables based on the analytical solutions provided by [Peng(1994)](#references). For now, it supports only an open borehole embedded in a homogeneous elastic medium.
+  - [A plane P wave incidence] `initialize_planewave` assigns field variables based on the analytical solutions provided by [Peng(1994)](#references). The package supports only an open borehole embedded in a homogeneous elastic medium.
 6. Creating a PML profile by `init_PML_profile`
 7. Defining a receiver geometry
 8. Setting snapshots parameters by `init_snapshots`
@@ -32,9 +31,9 @@ The sample files have the following structure. You can change values according t
 Following parameters are matrices of the size `(nz, nr)`.
  - `Rho` : Bulk density
  - `Rhof` : Fluid density
- - `H`, `C`, `M` : Poroelastic moduli (see, e.g., [Guan and Hu, 2011](#references))
+ - `H`, `C`, `M` : Poroelastic moduli (see, e.g., [Guan and Hu, 2011; Minato et al., 2021](#references))
  - `G` : Shear modulus
- - `D1`, `D2` : Material parameters relevant to fluid flow properties (see, e.g., [Guan and Hu, 2011](#references))
+ - `D1`, `D2` : Material parameters relevant to fluid flow properties (see, e.g., [Guan and Hu, 2011; Minato et al., 2021](#references))
  - `Flag_AC`, `Flag_E` : These flags are used to indicate an acoustic medium or an elastic medium at each FD cell.
 
 ## Field variables

@@ -9,27 +9,26 @@ This file explains sample files in `/samples`. They solve Biot poroelastic equat
 The sample files have the following structure. You can change values according to your simulation configuration.
 
 1. Setting `dt`, `T`, and PML thicknesses (`LPML_r` and `LPML_z`)
-2. Creating a model (material parameter distribution)
+2. Creating a model (material parameter distribution):
   - See [Material parameters](#material-parameters) below for the necessary material parameters.
   - Look at an example function, e.g., `makemodel_homogeneous_Elastic` in [/samples/homogeneous_Elastic.jl](/samples/homogeneous_Elastic.jl) for more details.
-3. Creating a source wavelet
-  - `src_func`
-4. Defining a source location and its amplitude scaling factor
+3. Creating a source wavelet `src_func`
+4. Defining a source location and its amplitude-scaling factor:
   - `src_index` and `src_dn`
 5. Initializing field variables by `init_fields_Por`
 6. Creating a PML profile by `init_PML_profile`
 7. Defining a receiver geometry
 8. Setting snapshots parameters by `init_snap`
-9. Running the FD main loop `main_loop!`
+9. Running the FD main loop `main_loop!`:
   - See [FD Main Loop](#fd-main-loop) below for more details.
 
 ## Material parameters
 Following parameters are matrices of the size `(nz, nr)`, where `nr` is the number of grid points in a radial direction `r`, and `nz` is that in a vertical direction `z`.
  - `Rho` : Bulk density
  - `Rhof` : Fluid density
- - `H`, `C`, `M` : Poroelastic moduli (see, e.g., [Guan and Hu, 2011](#references))
+ - `H`, `C`, `M` : Poroelastic moduli (see, e.g., [Guan and Hu, 2011; Minato et al., 2021](#references))
  - `G` : Shear modulus
- - `D1`, `D2` : Material parameters relevant to fluid flow properties (see, e.g., [Guan and Hu, 2011](#references))
+ - `D1`, `D2` : Material parameters relevant to fluid flow properties (see, e.g., [Guan and Hu, 2011; Minato et al., 2021](#references))
  - `Flag_AC`, `Flag_E` : These flags are used to indicate an acoustic medium or an elastic medium at each FD cell.
 
 ## Field variables
