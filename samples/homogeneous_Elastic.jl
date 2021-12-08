@@ -13,6 +13,7 @@ using CPUTime
 using ProgressMeter
 using Plots
 using Printf
+using Dierckx # for Aki-Richards Green's function
 
 #--Suppressing graphics
 #ENV["GKSwstype"]="nul"
