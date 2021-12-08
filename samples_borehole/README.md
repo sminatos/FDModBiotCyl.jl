@@ -1,8 +1,14 @@
-# Manual (/samples_borehole)
-This manual explains sample files in `/samples_borehole`. They solve Biot poroelastic equations using the finite-difference method in the cylindrical coordinate system with azimuthal symmetry. The solid phase assumes isotropic elasticity. Please note that the sample files will use additional packages for visualization.
+# /samples_borehole
+This file explains sample files in `/samples_borehole`. They solve Biot poroelastic equations using the finite-difference method in the cylindrical coordinate system with azimuthal symmetry. The solid phase assumes isotropic elasticity. Please note that the sample files will use additional packages for visualization.
+
+- [/samples_borehole/acoustic_logging.jl](/samples_borehole/acoustic_logging.jl) simulates pressure response in a water-filled borehole. The borehole is embedded in a homogeneous elastic medium, and a point source is located in the borehole water (monopole-source acoustic logging).
+
+- [/samples_borehole/VSP_Elastic_2L.jl](/samples_borehole/VSP_Elastic_2L.jl) simulates pressure response in a water-filled borehole. The borehole is embedded in a layered elastic medium, and a plane P wave incident on the borehole from above (zero-offset vertical seismic profiling).
+
+- [/samples_borehole/VSP_PoroElastic_3L.jl](/samples_borehole/VSP_PoroElastic_3L.jl) simulates pressure response in a water-filled borehole. The borehole is embedded in a layered elastic-poroelastic medium, and a plane P wave is incident from above (zero-offset vertical seismic profiling).
 
 ## Structure of the sample files
-The sample files in `/samples_borehole` contain several sample codes for FDTD simulation. They all have the following structure. You can change values according to your simulation configuration.
+The sample files have the following structure. You can change values according to your simulation configuration.
 
 1. Setting `dt`, `T`, and PML thicknesses (`LPML_r` and `LPML_z`)
 2. Creating a model (material parameter distribution)
@@ -15,7 +21,7 @@ The sample files in `/samples_borehole` contain several sample codes for FDTD si
   - [A plane P wave incidence] `src_depth`
 5. Initializing field variables
   - [A point source simulation] `init_fields_Por`
-  - [A plane P wave incidence] `initialize_planewave`
+  - [A plane P wave incidence] `initialize_planewave` assigns field variables based on the analytical solutions provided by [Peng(1994)](#references). For now, it supports only an open borehole embedded in a homogeneous elastic medium.
 6. Creating a PML profile by `init_PML_profile`
 7. Defining a receiver geometry
 8. Setting snapshots parameters by `init_snapshots`
@@ -26,7 +32,7 @@ The sample files in `/samples_borehole` contain several sample codes for FDTD si
 Following parameters are matrices of the size `(nz, nr)`.
  - `Rho` : Bulk density
  - `Rhof` : Fluid density
- - `H`, `C`, `M` : Poroelastic moduli (see, e.g., [Sidler et al., 2014](#references))
+ - `H`, `C`, `M` : Poroelastic moduli (see, e.g., [Guan and Hu, 2011](#references))
  - `G` : Shear modulus
  - `D1`, `D2` : Material parameters relevant to fluid flow properties (see, e.g., [Guan and Hu, 2011](#references))
  - `Flag_AC`, `Flag_E` : These flags are used to indicate an acoustic medium or an elastic medium at each FD cell.
@@ -37,7 +43,7 @@ Following parameters are matrices of the size `(nz, nr)`, where `nr` is the numb
 - `trr`, `tzz`, `tpp`, `trz` : solid-phase stress
 - `pf`, `vfr`, `vfz` : fluid pressure and fluid relative velocities.
 
-## Geometry convention
+## Grid geometry
 - `(z,r)`: z is a vertical direction, and `r` is a radial direction
 - Material parameters are defined at `(z,r)`. They are constant in a cell with the four corners at `(z+dz/2,r+dr/2)`, `(z-dz/2,r+dr/2)`, `(z-dz/2,r-dr/2)`, and `(z+dz/2,r-dr/2)`.
 - `(z,r)` is the center of a cell, where `tzz`, `trr`, `tpp`, and `pf` are defined.
@@ -47,7 +53,7 @@ Following parameters are matrices of the size `(nz, nr)`, where `nr` is the numb
 - The field parameters located at `z=0` are `tzz`, `trr`, `tpp`, `pf`, `vr`, and `vfr`.
 
 ## FD Main Loop
-The function `main_loop!` in the sample files in `/samples_borehole` calculates FD using given material parameters. It then populates a receiver response matrix (e.g., `rec_vz`). It may require modifying the main loop according to a source type (e.g., body force in `z` or `r` direction) and a receiver type (e.g., `pf` or `vz`) desired in your simulation. The calculation sequence in the loop is as follows. Additional complexities compared to `main_loop!` in the sample files in `/samples` (see [manual for /samples](/doc/manual_samples.md)) are due to the presence of acoustic, elastic, and poroelastic domains.
+The function `main_loop!` in the sample files in `/samples_borehole` calculates FD using given material parameters. It then populates a receiver response matrix (e.g., `rec_vz`). It may require modifying the main loop according to a source type (e.g., body force in `z` or `r` direction) and a receiver type (e.g., `pf` or `vz`) desired in your simulation. The calculation sequence in the loop is as follows. Additional complexities compared to `main_loop!` in the sample files in `/samples` (see [/samples](/samples)) are due to the presence of acoustic, elastic, and poroelastic domains.
 1. Updating velocity field (main computation region and PML region)
 2. Applying boundary conditions at the left (`r=0`) and the right (`r=R`) boundaries for the velocity field
   - [when Acoustic-Poroelastic-Elastic coupled media] Applying the boundary condition at the borehole wall (open-pore condition at the acoustic-poroelastic boundary). Only a vertical borehole wall is supported.  
@@ -63,7 +69,8 @@ At an acoustic domain (`Flag_AC`) and an elastic domain (`Flag_E`), it does not 
 
 ## References
 - Randall et al. (1991), Geophysics, 56, 1757-1769
+- Peng (1994), Ph.D. Thesis, Massachusetts Institute of Technology, http://hdl.handle.net/1721.1/12218
 - Mittet and Renlie (1996), Geophysics, 61, 21-33
 - Guan and Hu (2011), Comun. Comput. Phys., doi: 10.4208/cicp.020810.161210a
-- Sidler et al. (2014), Geophys. J. Int., doi: 10.1093/gji/ggt447
 - Ou and Wang (2019), Geophys. J. Int., doi: 10.1093/gji/ggz144
+- Minato et al. (2021), arXiv:2112.03410 [physics.geo-ph] (available at http://arxiv.org/abs/2112.03410).

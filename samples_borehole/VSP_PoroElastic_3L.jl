@@ -112,10 +112,10 @@ function makemodel_3L()
    dz=0.2 #meter
 
    #==============================================
-   Initializing poroelastic parameters (Sidler's)
+   Initializing grain/frame parameters
    ==============================================#
-   #First creating Sidler's poroelastic parameters and then converting to
-   #necessary parameters for our FD
+   #First creating grain/frame parameters and then converting them
+   #to necessary poroelastic parameters for our FD
    #----solid phase-----
    Km=zeros(nz,nr) #frame
    Ks=zeros(nz,nr) #grain
@@ -234,7 +234,9 @@ function makemodel_3L()
    end
 
 
-   #--Converting Sidler's param into Ou's param
+   #=====================================================
+   Converting grain/frame parameters into poroelastic parameters
+   =====================================================#
    #Rho, Rhof, M, C, H, G, D1, D2
    #Rho as is
    #Rhof as is

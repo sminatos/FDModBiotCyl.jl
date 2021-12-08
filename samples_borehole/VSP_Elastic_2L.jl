@@ -88,10 +88,10 @@ function makemodel_2L_Elastic()
 
 
    #==============================================
-   Initializing poroelastic parameters (Sidler's)
+   Initializing grain/frame parameters
    ==============================================#
-   #First creating Sidler's poroelastic parameters and then converting to
-   #necessary parameters for our FD
+   #First creating grain/frame parameters and then converting them
+   #to necessary poroelastic parameters for our FD
    #----solid phase-----
    Km=zeros(nz,nr) #frame
    Ks=zeros(nz,nr) #grain
@@ -183,7 +183,7 @@ function makemodel_2L_Elastic()
    end
 
    #=====================================================
-   Converting Sidler's poroelastic parameters into Ou's
+   Converting grain/frame parameters into poroelastic parameters
    =====================================================#
    #Rho, Rhof, M, C, H, G, D1, D2
    #Rho as is

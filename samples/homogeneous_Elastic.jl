@@ -69,7 +69,7 @@ function makemodel_homogeneous_Elastic()
    #Rhof: Fluid density
    #M,C,H: Poroelastic moduli
    #G: Formation shear modulus
-   #D1,D2: Poroelastic moduli in Ou's formulation
+   #D1,D2: Poroelastic moduli (Guan and Hu, 2011; Ou and Wang, 2019)
    #Flag_AC,Flag_E: flag specifying acoustic region or elastic region
    # This function creates the above input parameters assuming a
    # homogeneous elastic media
@@ -82,10 +82,10 @@ function makemodel_homogeneous_Elastic()
 
 
    #==============================================
-   Initializing poroelastic parameters (Sidler's)
+   Initializing grain/frame parameters
    ==============================================#
-   #First creating Sidler's poroelastic parameters and then converting to
-   #necessary parameters for our FD
+   #First creating grain/frame parameters and then converting them
+   #to necessary poroelastic parameters for our FD
    #----solid phase-----
    Km=zeros(nz,nr) #frame
    Ks=zeros(nz,nr) #grain
@@ -132,7 +132,7 @@ function makemodel_homogeneous_Elastic()
    #--
 
    #=====================================================
-   Converting Sidler's poroelastic parameters into Ou's
+   Converting grain/frame parameters into poroelastic parameters
    =====================================================#
    #Rho, Rhof, M, C, H, G, D1, D2
    #Rho as is

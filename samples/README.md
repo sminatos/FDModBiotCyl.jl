@@ -1,8 +1,12 @@
-# Manual (/samples)
-This manual explains sample files in `/samples`. They solve Biot poroelastic equations using the finite-difference method in the cylindrical coordinate system with azimuthal symmetry. The solid phase assumes isotropic elasticity. Please note that the sample files will use additional packages for visualization.
+# /samples
+This file explains sample files in `/samples`. They solve Biot poroelastic equations using the finite-difference method in the cylindrical coordinate system with azimuthal symmetry. The solid phase assumes isotropic elasticity. Please note that the sample files will use additional packages for visualization.
+
+- [/samples/homogeneous_Elastic.jl](/samples/homogeneous_Elastic.jl) simulates elastic wavefield in a homogeneous medium due to a point source.
+
+- [/samples/homogeneous_PoroElastic.jl](/samples/homogeneous_PoroElastic.jl) simulates poroelastic wavefield in a homogeneous medium due to a point source.
 
 ## Structure of the sample files
-The sample files in `/samples` contain several sample codes for FDTD simulation. They all have the following structure. You can change values according to your simulation configuration.
+The sample files have the following structure. You can change values according to your simulation configuration.
 
 1. Setting `dt`, `T`, and PML thicknesses (`LPML_r` and `LPML_z`)
 2. Creating a model (material parameter distribution)
@@ -23,7 +27,7 @@ The sample files in `/samples` contain several sample codes for FDTD simulation.
 Following parameters are matrices of the size `(nz, nr)`, where `nr` is the number of grid points in a radial direction `r`, and `nz` is that in a vertical direction `z`.
  - `Rho` : Bulk density
  - `Rhof` : Fluid density
- - `H`, `C`, `M` : Poroelastic moduli (see, e.g., [Sidler et al., 2014](#references))
+ - `H`, `C`, `M` : Poroelastic moduli (see, e.g., [Guan and Hu, 2011](#references))
  - `G` : Shear modulus
  - `D1`, `D2` : Material parameters relevant to fluid flow properties (see, e.g., [Guan and Hu, 2011](#references))
  - `Flag_AC`, `Flag_E` : These flags are used to indicate an acoustic medium or an elastic medium at each FD cell.
@@ -34,7 +38,7 @@ Following parameters are matrices of the size `(nz, nr)`.
 - `trr`, `tzz`, `tpp`, `trz` : solid-phase stress
 - `pf`, `vfr`, `vfz` : fluid pressure and fluid relative velocities.
 
-## Geometry convention
+## Grid geometry
 - `(z,r)`: z is a vertical direction, and `r` is a radial direction
 - Material parameters are defined at `(z,r)`. They are constant in a cell with the four corners at `(z+dz/2,r+dr/2)`, `(z-dz/2,r+dr/2)`, `(z-dz/2,r-dr/2)`, and `(z+dz/2,r-dr/2)`.
 - `(z,r)` is the center of a cell, where `tzz`, `trr`, `tpp`, and `pf` are defined.
@@ -58,7 +62,8 @@ At an acoustic domain (`Flag_AC`) and an elastic domain (`Flag_E`), it does not 
 
 ## References
 - Randall et al. (1991), Geophysics, 56, 1757-1769
+- Peng (1994), Ph.D. Thesis, Massachusetts Institute of Technology, http://hdl.handle.net/1721.1/12218
 - Mittet and Renlie (1996), Geophysics, 61, 21-33
 - Guan and Hu (2011), Comun. Comput. Phys., doi: 10.4208/cicp.020810.161210a
-- Sidler et al. (2014), Geophys. J. Int., doi: 10.1093/gji/ggt447
 - Ou and Wang (2019), Geophys. J. Int., doi: 10.1093/gji/ggz144
+- Minato et al. (2021), arXiv:2112.03410 [physics.geo-ph] (available at http://arxiv.org/abs/2112.03410).
