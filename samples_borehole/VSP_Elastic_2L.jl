@@ -529,12 +529,58 @@ println("elapsed real time: ", round(time() - start;digits=3)," seconds")
 
 println("FD finished without a problem.")
 
-println("Plotting receiver responses...")
-FD_z0=269*dz+dz/2 #depth of the impedance boundary
-offset=recgeom[:,1]-FD_z0*ones(size(recgeom[:,1]))
 plt1=heatmap(offset,tvec[1:10:end],-rec_tii[1:10:end,:],xlabel="Depth (m)",ylabel="time (s)",title="pressure")
 heatmap!(yflip=true)
 display(plot(plt1))
 plt2=plot(tvec[:],-rec_tii[:,218],xlabel="Depth (m)",ylabel="time (s)",title="-10.5m",label="",ylims=(-0.11,0.05))
 plt3=plot(tvec[:],-rec_tii[:,323],xlabel="Depth (m)",ylabel="time (s)",title="+10.5m",label="",ylims=(-0.4,0.2))
 display(plot(plt2,plt3,layout=(2,1)))
+
+#==============================
+Figure outputs
+==============================#
+println("Plotting receiver responses...")
+FD_z0=269*dz+dz/2 #depth of the impedance boundary
+offset=recgeom[:,1]-FD_z0*ones(size(recgeom[:,1]))
+plt1 = heatmap(    
+    tvec[1:10:end],
+    offset,
+    transpose(-rec_tii[1:10:end, :]),
+    xlabel = "time (s)",
+    ylabel = "Depth (m)",
+    title  = "Pressure",
+    yflip  = true,
+    c      = :viridis, 
+    aspect_ratio=0.00025,
+    colorbar = true
+)
+
+plt2 = plot(
+    tvec[:],
+    -rec_tii[:,218],
+    xlabel = "Time (s)",
+    ylabel = "Pressure (Pa)",
+    title  = "-10.5m",
+    label  = "",
+    ylims  = (-0.11, 0.05)
+)
+
+plt3 = plot(
+    tvec[:],
+    -rec_tii[:,323],
+    xlabel = "Time (s)",
+    ylabel = "Pressure (Pa)",
+    title  = "+10.5m",
+    label  = "",
+    ylims  = (-0.4, 0.2)
+)
+
+custom_layout = @layout [ a{0.6h}; b{0.2h}; c{0.2h} ]
+fig = plot(plt1, plt2, plt3;
+    layout = custom_layout,
+    size = (500,600),
+)
+
+display(fig)
+script_dir = @__DIR__ 
+savefig(fig, joinpath(script_dir, "VSP_Elastic_2L.png"))
