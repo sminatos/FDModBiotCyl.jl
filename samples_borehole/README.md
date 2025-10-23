@@ -7,6 +7,8 @@ This file explains sample files in `/samples_borehole`. They solve Biot poroelas
 
 - [/samples_borehole/VSP_PoroElastic_3L.jl](/samples_borehole/VSP_PoroElastic_3L.jl) simulates pressure response in a water-filled borehole. The borehole is embedded in a layered elastic-poroelastic medium, and a plane P wave is incident from above (zero-offset vertical seismic profiling).
 
+- [/samples_borehole/VSP_Caliper_Change.jl](/samples_borehole/VSP_Caliper_Change.jl) simulates the pressure response in a water-filled borehole with a step-like radius change (“caliper change”). The borehole is embedded in a homogeneous elastic medium, and a plane P wave is incident from above (zero-offset vertical seismic profiling). Tube waves are generated at the radius discontinuity.
+
 ## Structure of the sample files
 The sample files have the following structure. You can change values according to your simulation configuration.
 
