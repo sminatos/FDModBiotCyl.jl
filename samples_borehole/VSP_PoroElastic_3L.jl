@@ -13,6 +13,7 @@ using CPUTime
 using ProgressMeter
 using Plots
 using Printf
+using Measures
 #
 
 
@@ -745,3 +746,61 @@ rvec=range(0.0,(nr-1)*dr,length=nr) # range object (no memory allocation)
 rvec=collect(rvec) # a vector
 plt4=plot(rvec[:],rec_pf_PE[4001,:],xlabel="r (m)",ylabel="pressure (Pa)",title="t=0.005 s",label="Pf",ylims=(-0.08,-0.06))
 plot!(rvec[:],-rec_tii_PE[4001,:],xlabel="r (m)",ylabel="pressure (Pa)",title="t=0.005 s",label="-tii/3",ylims=(-0.08,-0.06))
+
+plt1=heatmap(tvec[1:10:end],offset[173:373],transpose(-rec_tii[1:10:end,173:373]),xlabel="Depth (m)",ylabel="time (s)",title="pressure")
+display(plot(plt1))
+
+#==============================
+Figure outputs
+==============================#
+println("Plotting receiver responses...")
+FD_z0=272*dz #the reference depth of the porous layer
+recdepth=(float(index_allrec_tii[1:nz,1])-ones(nz,1))*dz #receiver depth
+offset=recdepth-FD_z0*ones(size(recdepth))
+plt1 = heatmap(    
+    tvec[1:10:end],
+    offset[173:373],
+    transpose(-rec_tii[1:10:end, 173:373]),
+    xlabel = "Time (s)",
+    ylabel = "Depth (m)",
+    colorbar_title  = "Pressure (Pa)",
+    yflip  = true,
+    c      = :viridis, 
+    aspect_ratio=0.0005,
+    colorbar = true,
+    clims = (-0.03,0.03)
+)
+
+
+plt2 = plot(
+    tvec[:],
+    -rec_tii[:,223],
+    xlabel = "Time (s)",
+    ylabel = "Pressure (Pa)",
+    label  = "",
+    ylims  = (-0.03, 0.03),
+    xlims  = (0, 0.02),
+    yticks = [-0.02, 0, 0.02]
+
+)
+
+plt3 = plot(
+    tvec[:],
+    -rec_tii[:,323],
+    xlabel = "Time (s)",
+    ylabel = "Pressure (Pa)",
+    label  = "",
+    ylims  = (-0.03, 0.03),
+    xlims  = (0, 0.02),
+    yticks = [-0.02, 0, 0.02]
+)
+
+custom_layout = @layout [ a{0.6h}; b{0.2h}; c{0.2h} ]
+fig = plot(plt1, plt2, plt3;
+    layout = custom_layout,
+    size = (500,600),
+)
+
+display(fig)
+script_dir = @__DIR__ 
+savefig(fig, joinpath(script_dir, "VSP_PoroElastic_3L.png"))
